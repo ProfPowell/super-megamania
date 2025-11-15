@@ -3,8 +3,8 @@
  * Spawns and manages enemy waves
  */
 
-import { getWaveByIndex } from '../config/waves.js';
-import { createEnemy } from '../entities/enemy.js';
+import { getWaveByIndex } from '../config/wavesExpanded.js';
+import { createEnemy } from '../entities/enemyExpanded.js';
 
 /**
  * Start a new wave
