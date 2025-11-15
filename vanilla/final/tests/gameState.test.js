@@ -77,7 +77,7 @@ test('nextWave - advances wave index', () => {
 
 test('nextWave - advances level after all waves', () => {
   const state = createGameState('normal');
-  state.currentWaveIndex = 4; // Last wave (0-indexed)
+  state.currentWaveIndex = 14; // Last wave (0-indexed, wave 15)
   const initialLevel = state.level;
 
   nextWave(state);
