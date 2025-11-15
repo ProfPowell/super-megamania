@@ -7,7 +7,7 @@ A JavaScript tutorial project that reimplements the ancient Activision game Mega
 This document is a **project plan & scaffold spec** for building a Megamania-style arcade shooter in JavaScript in two ways:
 
 1. **Phase 1 – Vanilla JS + Canvas API**
-2. **Phase 2 – Game Library (e.g. Phaser/Kaboom) for comparison**
+2. **Phase 2 – Game Library (e.g. Phaser or Pixi) for comparison**
 
 The plan is designed so you can feed each step to a code-generation LLM and have it create the files and code incrementally.
 
