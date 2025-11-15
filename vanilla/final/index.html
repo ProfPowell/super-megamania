@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="Megamania-style arcade shooter game built with vanilla JavaScript">
+  <meta name="theme-color" content="#0a0e27">
+  <title>Super Megamania</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Touch Controls (Mobile) -->
+    <div id="touch-controls" class="touch-controls hidden">
+      <button id="btn-left" class="touch-btn btn-left" aria-label="Move Left">◀</button>
+      <button id="btn-fire" class="touch-btn btn-fire" aria-label="Fire">🔥</button>
+      <button id="btn-right" class="touch-btn btn-right" aria-label="Move Right">▶</button>
+    </div>
+
+    <!-- Menu Overlay -->
+    <div id="menu" class="overlay menu-screen">
+      <h1 class="title">SUPER<br>MEGAMANIA</h1>
+      <nav class="menu-buttons">
+        <button id="btn-start" class="menu-btn selected">START GAME</button>
+        <button id="btn-high-scores" class="menu-btn">HIGH SCORES</button>
+        <button id="btn-settings" class="menu-btn">SETTINGS</button>
+        <button id="btn-help" class="menu-btn">HELP</button>
+      </nav>
+      <p class="subtitle">Press SPACE or click START</p>
+    </div>
+
+    <!-- High Scores Screen -->
+    <div id="high-scores-screen" class="overlay hidden">
+      <h2 class="screen-title">HIGH SCORES</h2>
+      <div id="high-scores-list" class="high-scores-list"></div>
+      <button id="btn-back-scores" class="menu-btn">BACK</button>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="overlay hidden">
+      <h2 class="screen-title">SETTINGS</h2>
+      <div class="settings-panel">
+        <div class="setting-row">
+          <label>Difficulty:</label>
+          <select id="difficulty-select" class="setting-select">
+            <option value="easy">EASY</option>
+            <option value="normal" selected>NORMAL</option>
+            <option value="hard">HARD</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Sound FX:</label>
+          <button id="sfx-toggle" class="setting-toggle">ON</button>
+        </div>
+        <div class="setting-row">
+          <label>Music:</label>
+          <button id="music-toggle" class="setting-toggle">OFF</button>
+        </div>
+        <div class="setting-row">
+          <label>Volume:</label>
+          <input type="range" id="volume-slider" min="0" max="100" value="70" class="setting-slider">
+          <span id="volume-value">70%</span>
+        </div>
+      </div>
+      <button id="btn-back-settings" class="menu-btn">BACK</button>
+    </div>
+
+    <!-- Help Screen -->
+    <div id="help-screen" class="overlay hidden">
+      <h2 class="screen-title">HOW TO PLAY</h2>
+      <div class="help-content">
+        <p><strong>CONTROLS</strong></p>
+        <p>← → or A D: Move</p>
+        <p>SPACE or W: Fire</p>
+        <p>ESC or P: Pause</p>
+        <br>
+        <p><strong>OBJECTIVE</strong></p>
+        <p>Destroy enemy waves!</p>
+        <p>Survive and score high!</p>
+        <br>
+        <p><strong>TIPS</strong></p>
+        <p>• Avoid enemy bullets</p>
+        <p>• Clear waves for bonus</p>
+        <p>• Difficulty increases!</p>
+      </div>
+      <button id="btn-back-help" class="menu-btn">BACK</button>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="overlay hidden">
+      <h2 class="screen-title">PAUSED</h2>
+      <nav class="menu-buttons">
+        <button id="btn-resume" class="menu-btn selected">RESUME</button>
+        <button id="btn-quit" class="menu-btn">QUIT TO MENU</button>
+      </nav>
+      <p class="subtitle">Press ESC to resume</p>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="overlay hidden">
+      <h2 class="game-over-title">GAME OVER</h2>
+      <div id="final-score" class="final-score"></div>
+      <div id="new-high-score" class="new-high-score hidden">NEW HIGH SCORE!</div>
+      <div id="name-entry" class="name-entry hidden">
+        <label>Enter Initials:</label>
+        <input type="text" id="player-name" maxlength="3" value="AAA" class="name-input">
+      </div>
+      <button id="btn-restart" class="menu-btn">PLAY AGAIN</button>
+      <button id="btn-menu" class="menu-btn">MAIN MENU</button>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="overlay">
+      <h2>LOADING...</h2>
+      <div class="loading-bar">
+        <div id="loading-progress" class="loading-progress"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Script (ES Module) -->
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

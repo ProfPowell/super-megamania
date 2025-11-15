@@ -1,0 +1,26 @@
+{
+  "name": "super-megamania",
+  "version": "1.0.0",
+  "description": "A JavaScript tutorial project that reimplements Megamania using modern Web tech",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "test:watch": "node --test --watch",
+    "serve": "npx serve vanilla/final -p 3000",
+    "dev": "npx serve vanilla/final -p 3000"
+  },
+  "keywords": [
+    "game",
+    "javascript",
+    "canvas",
+    "megamania",
+    "tutorial",
+    "pwa"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
