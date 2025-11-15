@@ -11,6 +11,7 @@ const PLAYER_NAME_KEY = gameConfig.storage.keys.playerName;
 /**
  * @typedef {Object} Settings
  * @property {string} difficulty - 'easy' | 'normal' | 'hard'
+ * @property {string} theme - Theme name ('cats', 'food', 'space', etc.)
  * @property {boolean} sfxEnabled - Sound effects enabled
  * @property {boolean} musicEnabled - Music enabled
  * @property {number} masterVolume - Master volume (0-1)
@@ -52,6 +53,7 @@ export function saveSettings(settings) {
 export function getDefaultSettings() {
   return {
     difficulty: gameConfig.storage.defaults.difficulty,
+    theme: 'cats',
     sfxEnabled: gameConfig.storage.defaults.audioEnabled,
     musicEnabled: gameConfig.storage.defaults.musicEnabled,
     masterVolume: gameConfig.audio.masterVolume
@@ -92,6 +94,12 @@ export function applySettingsToUI(settings) {
   const difficultySelect = document.getElementById('difficulty-select');
   if (difficultySelect) {
     difficultySelect.value = settings.difficulty;
+  }
+
+  // Theme
+  const themeSelect = document.getElementById('theme-select');
+  if (themeSelect) {
+    themeSelect.value = settings.theme || 'cats';
   }
 
   // SFX toggle
