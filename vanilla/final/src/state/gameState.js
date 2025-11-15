@@ -74,6 +74,7 @@ export function createGameState(difficulty = 'normal') {
     gameTime: 0,
     waveStartTime: 0,
     lastEnemySpawnTime: 0,
+    energyDepletionTimer: 0,  // Timer before energy starts depleting
 
     // Wave spawning
     enemiesSpawned: 0,
@@ -109,6 +110,7 @@ export function resetGameState(state, difficulty) {
   state.gameTime = 0;
   state.waveStartTime = 0;
   state.lastEnemySpawnTime = 0;
+  state.energyDepletionTimer = 0;
   state.enemiesSpawned = 0;
   state.spawnComplete = false;
 }
@@ -144,7 +146,17 @@ export function loseLife(state) {
 export function depleteEnergy(state, dt) {
   if (state.currentState !== GameStates.PLAYING) return false;
 
-  const { depletionRate } = gameConfig.player.energy;
+  const { depletionRate, startDelay } = gameConfig.player.energy;
+
+  // Increment timer
+  state.energyDepletionTimer += dt;
+
+  // Don't start depleting until after the delay
+  if (state.energyDepletionTimer < startDelay) {
+    return false;
+  }
+
+  // Now deplete energy
   state.energy -= depletionRate * dt;
 
   // Clamp to zero
@@ -162,6 +174,7 @@ export function depleteEnergy(state, dt) {
  */
 export function refillEnergy(state) {
   state.energy = state.maxEnergy;
+  state.energyDepletionTimer = 0;  // Reset timer so energy doesn't start depleting immediately
 }
 
 /**

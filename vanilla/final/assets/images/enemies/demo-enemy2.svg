@@ -1,0 +1,6 @@
+<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Demo enemy 2 - Purple diamond -->
+  <polygon points="12,2 22,12 12,22 2,12" fill="#9933ff" stroke="#6600cc" stroke-width="1"/>
+  <polygon points="12,6 18,12 12,18 6,12" fill="#cc66ff"/>
+  <circle cx="12" cy="12" r="3" fill="#ffffff" opacity="0.5"/>
+</svg>
