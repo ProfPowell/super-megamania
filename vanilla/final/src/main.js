@@ -288,6 +288,7 @@ function startGame() {
   waveAnnouncementAlpha = 1;
 
   audioManager.playWaveStart();
+  audioManager.startMusic();  // Start background music
 
   state.currentState = GameStates.PLAYING;
 }
@@ -326,6 +327,7 @@ function quitToMenu() {
 function handleGameOver() {
   state.currentState = GameStates.GAME_OVER;
 
+  audioManager.stopMusic();  // Stop background music
   audioManager.playGameOver();
 
   // Show game over screen

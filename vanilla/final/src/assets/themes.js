@@ -301,6 +301,22 @@ export const customTheme = {
 */
 
 /**
+ * DEMO theme using EXTERNAL SVG files
+ * Demonstrates how to load images from the filesystem
+ */
+export const demoTheme = {
+  name: 'Demo (External Files)',
+  player: 'assets/images/player/demo-ship.svg',
+  enemies: {
+    wave1: 'assets/images/enemies/demo-enemy1.svg',  // Red saucer
+    wave2: 'assets/images/enemies/demo-enemy2.svg',  // Purple diamond
+    wave3: 'assets/images/enemies/demo-enemy3.svg',  // Orange hexagon
+    wave4: 'assets/images/enemies/demo-enemy1.svg',  // Repeat for more waves
+    wave5: 'assets/images/enemies/demo-enemy2.svg',
+  }
+};
+
+/**
  * All available themes
  */
 export const themes = {
@@ -309,7 +325,8 @@ export const themes = {
   food: foodTheme,
   space: spaceTheme,
   emoji: emojiTheme,
-  retro: retroTheme
+  retro: retroTheme,
+  demo: demoTheme  // Demo theme with external files
   // Add custom themes here:
   // custom: customTheme
 };

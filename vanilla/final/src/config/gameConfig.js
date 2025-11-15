@@ -44,10 +44,11 @@ export const gameConfig = {
     // Energy system (like original Megamania)
     energy: {
       maxEnergy: 1000,           // Maximum energy per life
-      depletionRate: 100,        // Energy lost per second (10 seconds max)
+      depletionRate: 25,         // Energy lost per second (40 seconds max - more reasonable!)
       bonusPointsMultiplier: 1,  // Energy * multiplier = bonus points
       warningThreshold: 300,     // Show warning when energy below this
-      criticalThreshold: 150     // Critical warning (red/flashing)
+      criticalThreshold: 150,    // Critical warning (red/flashing)
+      startDelay: 2.0            // Seconds to wait after wave starts before depleting
     },
 
     color: '#00ff00',

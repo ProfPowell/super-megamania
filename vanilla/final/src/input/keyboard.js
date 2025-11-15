@@ -23,11 +23,29 @@ export function createKeyboardInput() {
   let enabled = true;
 
   /**
+   * Check if event target is an input field
+   * @param {Event} e - Event object
+   * @returns {boolean} True if typing in input
+   */
+  function isTypingInInput(e) {
+    const target = e.target;
+    return target && (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable
+    );
+  }
+
+  /**
    * Handle key down
    * @param {KeyboardEvent} e - Keyboard event
    */
   function handleKeyDown(e) {
     if (!enabled) return;
+
+    // Don't capture keys when typing in input fields
+    if (isTypingInInput(e)) return;
+
     keys.add(e.code);
 
     // Prevent default for game keys
@@ -42,6 +60,10 @@ export function createKeyboardInput() {
    */
   function handleKeyUp(e) {
     if (!enabled) return;
+
+    // Don't capture keys when typing in input fields
+    if (isTypingInInput(e)) return;
+
     keys.delete(e.code);
   }
 

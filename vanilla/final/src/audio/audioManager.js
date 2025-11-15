@@ -15,6 +15,12 @@ export function createAudioManager() {
   let musicEnabled = gameConfig.audio.musicEnabled;
   let masterVolume = gameConfig.audio.masterVolume;
 
+  // Background music state
+  let musicOscillators = [];
+  let musicGainNode = null;
+  let musicPlaying = false;
+  let musicLoopId = null;
+
   // Initialize on first user interaction (required by browsers)
   let initialized = false;
 
@@ -59,6 +65,72 @@ export function createAudioManager() {
     } catch (error) {
       console.warn('Failed to play beep:', error);
     }
+  }
+
+  /**
+   * Start background music loop
+   * Simple procedurally generated music using oscillators
+   */
+  function startBackgroundMusic() {
+    if (!musicEnabled || !audioContext || musicPlaying) return;
+
+    try {
+      init();
+      stopBackgroundMusic(); // Stop any existing music first
+
+      // Create gain node for music volume control
+      musicGainNode = audioContext.createGain();
+      musicGainNode.connect(audioContext.destination);
+      musicGainNode.gain.value = masterVolume * gameConfig.audio.musicVolume * 0.3;
+
+      // Simple 4-note bass line loop (C2, G1, A1, F1)
+      const bassNotes = [65.41, 49.00, 55.00, 43.65]; // Hz
+      const beatDuration = 0.5; // seconds per note
+
+      let beatIndex = 0;
+
+      function playNextBeat() {
+        if (!musicEnabled || !audioContext) return;
+
+        const osc = audioContext.createOscillator();
+        const noteGain = audioContext.createGain();
+
+        osc.connect(noteGain);
+        noteGain.connect(musicGainNode);
+
+        osc.type = 'triangle';
+        osc.frequency.value = bassNotes[beatIndex % bassNotes.length];
+
+        const now = audioContext.currentTime;
+        noteGain.gain.setValueAtTime(0.3, now);
+        noteGain.gain.exponentialRampToValueAtTime(0.01, now + beatDuration);
+
+        osc.start(now);
+        osc.stop(now + beatDuration);
+
+        beatIndex++;
+
+        // Schedule next beat
+        musicLoopId = setTimeout(playNextBeat, beatDuration * 1000);
+      }
+
+      playNextBeat();
+      musicPlaying = true;
+    } catch (error) {
+      console.warn('Failed to start background music:', error);
+    }
+  }
+
+  /**
+   * Stop background music
+   */
+  function stopBackgroundMusic() {
+    if (musicLoopId) {
+      clearTimeout(musicLoopId);
+      musicLoopId = null;
+    }
+
+    musicPlaying = false;
   }
 
   return {
@@ -142,6 +214,27 @@ export function createAudioManager() {
      */
     setMusicEnabled(enabled) {
       musicEnabled = enabled;
+      if (enabled) {
+        startBackgroundMusic();
+      } else {
+        stopBackgroundMusic();
+      }
+    },
+
+    /**
+     * Start background music
+     */
+    startMusic() {
+      if (musicEnabled) {
+        startBackgroundMusic();
+      }
+    },
+
+    /**
+     * Stop background music
+     */
+    stopMusic() {
+      stopBackgroundMusic();
     },
 
     /**
@@ -150,6 +243,9 @@ export function createAudioManager() {
      */
     setMasterVolume(volume) {
       masterVolume = Math.max(0, Math.min(1, volume));
+      if (musicGainNode) {
+        musicGainNode.gain.value = masterVolume * gameConfig.audio.musicVolume * 0.3;
+      }
     },
 
     /**
