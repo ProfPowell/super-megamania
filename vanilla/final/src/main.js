@@ -41,6 +41,8 @@ let waveAnnouncementAlpha = 0;
 let waveAnnouncementTimer = 0;
 let waveCompleteAlpha = 0;
 let waveCompleteTimer = 0;
+let interWavePause = false;
+let interWavePauseTimer = 0;
 
 // Pause tracking
 let pausePressed = false;
@@ -409,8 +411,11 @@ function update(dt) {
     }
   }
 
-  // Update wave manager
-  updateWaveManager(state, dt, adjustedConfig);
+  // Don't spawn/update enemies during inter-wave pause
+  if (!interWavePause) {
+    // Update wave manager
+    updateWaveManager(state, dt, adjustedConfig);
+  }
 
   // Update enemies (pass player position for kamikaze tracking)
   const playerPos = { x: state.player.x + state.player.width / 2, y: state.player.y };
@@ -426,9 +431,15 @@ function update(dt) {
       recordEnemyFire(enemy);
     }
 
-    // Remove if off-screen
+    // Remove if off-screen (count as escaped, still advances wave)
     if (isEnemyOffScreen(enemy)) {
       state.enemies.splice(i, 1);
+      // Count escaped enemies toward wave progression so it doesn't hang
+      // In original Megamania, letting enemies escape was bad but didn't break the game
+      if (state.currentWave) {
+        // Don't count as kill for score, but allow wave to progress
+        state.enemiesKilled++;
+      }
     }
   }
 
@@ -499,15 +510,27 @@ function update(dt) {
   }
 
   // Check wave completion
-  if (state.waveComplete && state.enemies.length === 0) {
-    waveCompleteTimer = 2;
+  if (state.waveComplete && state.enemies.length === 0 && !interWavePause) {
+    // Start inter-wave pause
+    interWavePause = true;
+    interWavePauseTimer = 3.0; // 3 second pause between waves
+    waveCompleteTimer = 2.5;
     waveCompleteAlpha = 1;
-    nextWave(state);
-    adjustedConfig = getAdjustedConfig(state.difficulty, state.level);
-    startWave(state, adjustedConfig);
-    waveAnnouncementTimer = 2;
-    waveAnnouncementAlpha = 1;
-    audioManager.playWaveStart();
+  }
+
+  // Handle inter-wave pause
+  if (interWavePause) {
+    interWavePauseTimer -= dt;
+    if (interWavePauseTimer <= 0) {
+      // Pause complete, start next wave
+      interWavePause = false;
+      nextWave(state);
+      adjustedConfig = getAdjustedConfig(state.difficulty, state.level);
+      startWave(state, adjustedConfig);
+      waveAnnouncementTimer = 2;
+      waveAnnouncementAlpha = 1;
+      audioManager.playWaveStart();
+    }
   }
 
   // Update UI animations
