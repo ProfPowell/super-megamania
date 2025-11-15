@@ -5,7 +5,7 @@
 
 import { initCanvas, clearCanvas, generateStars, drawStarfield } from './canvas.js';
 import { createGameLoop } from './gameLoop.js';
-import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave } from './state/gameState.js';
+import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy } from './state/gameState.js';
 import { getAdjustedConfig } from './config/gameConfig.js';
 import { createInputManager } from './input/inputManager.js';
 import { createPlayer, updatePlayer, canFire, recordFire, hitPlayer, getPlayerHitbox, drawPlayer } from './entities/player.js';
@@ -14,12 +14,12 @@ import { createEnemy, updateEnemy, canEnemyFire, recordEnemyFire, isEnemyOffScre
 import { checkProjectileEnemyCollision, checkPlayerEnemyCollision, checkPlayerBulletCollision } from './systems/collision.js';
 import { startWave, updateWaveManager } from './systems/waveManager.js';
 import { createExplosion, updateParticles, drawParticles } from './systems/particleSystem.js';
-import { drawHUD, drawWaveAnnouncement, drawWaveComplete } from './ui/hud.js';
+import { drawHUD, drawWaveAnnouncement, drawWaveComplete, drawEnergyBar } from './ui/hud.js';
 import { createMenuController } from './ui/menu.js';
 import { loadHighScores, isHighScore, addHighScore, renderHighScores } from './storage/highScores.js';
 import { loadSettings, saveSettings, loadPlayerName, savePlayerName, applySettingsToUI } from './storage/settings.js';
 import { createAudioManager } from './audio/audioManager.js';
-import { assetLoader } from './assets/assetLoader.js';
+import { assetLoader, loadThemeImages } from './assets/assetLoader.js';
 import { getTheme } from './assets/themes.js';
 import { waves } from './config/wavesExpanded.js';
 import { getTotalWaves } from './config/wavesExpanded.js';
@@ -41,6 +41,8 @@ let waveAnnouncementAlpha = 0;
 let waveAnnouncementTimer = 0;
 let waveCompleteAlpha = 0;
 let waveCompleteTimer = 0;
+let interWavePause = false;
+let interWavePauseTimer = 0;
 
 // Pause tracking
 let pausePressed = false;
@@ -109,45 +111,28 @@ async function init() {
 
 /**
  * Load theme assets
+ * Supports both SVG data URLs and external PNG/JPG files
  * @param {string} themeName - Theme name
  */
 async function loadTheme(themeName) {
   console.log(`Loading theme: ${themeName}`);
 
   currentTheme = getTheme(themeName);
+
+  // Use the unified theme loader (handles both data URLs and external files)
+  const loadedImages = await loadThemeImages(currentTheme);
+
+  // Extract player and enemy images
+  playerImage = loadedImages.player || null;
   themeImages = {};
 
-  // Create images from theme data URLs
-  if (currentTheme.player) {
-    playerImage = await loadImageFromDataURL(currentTheme.player);
-  } else {
-    playerImage = null;
-  }
-
-  // Load enemy images
-  for (const [key, dataURL] of Object.entries(currentTheme.enemies)) {
-    if (dataURL) {
-      themeImages[key] = await loadImageFromDataURL(dataURL);
-    } else {
-      themeImages[key] = null;
+  for (const [key, image] of Object.entries(loadedImages)) {
+    if (key !== 'player') {
+      themeImages[key] = image;
     }
   }
 
-  console.log(`Theme loaded: ${currentTheme.name}`);
-}
-
-/**
- * Load image from data URL
- * @param {string} dataURL - Data URL
- * @returns {Promise<HTMLImageElement>}
- */
-function loadImageFromDataURL(dataURL) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null); // Return null on error
-    img.src = dataURL;
-  });
+  console.log(`Theme loaded: ${currentTheme.name} (${Object.keys(themeImages).length} enemy sprites)`);
 }
 
 /**
@@ -379,6 +364,20 @@ function update(dt) {
 
   state.gameTime += dt;
 
+  // Deplete energy over time (like original Megamania!)
+  const energyDepleted = depleteEnergy(state, dt);
+  if (energyDepleted) {
+    // Ran out of energy - lose a life
+    const gameOver = loseLife(state);
+    if (gameOver) {
+      handleGameOver();
+      return;
+    }
+    // Refill energy for next life
+    refillEnergy(state);
+    audioManager.playPlayerHit();
+  }
+
   // Get input
   const input = inputManager.getState();
 
@@ -409,8 +408,11 @@ function update(dt) {
     }
   }
 
-  // Update wave manager
-  updateWaveManager(state, dt, adjustedConfig);
+  // Don't spawn/update enemies during inter-wave pause
+  if (!interWavePause) {
+    // Update wave manager
+    updateWaveManager(state, dt, adjustedConfig);
+  }
 
   // Update enemies (pass player position for kamikaze tracking)
   const playerPos = { x: state.player.x + state.player.width / 2, y: state.player.y };
@@ -426,9 +428,15 @@ function update(dt) {
       recordEnemyFire(enemy);
     }
 
-    // Remove if off-screen
+    // Remove if off-screen (count as escaped, still advances wave)
     if (isEnemyOffScreen(enemy)) {
       state.enemies.splice(i, 1);
+      // Count escaped enemies toward wave progression so it doesn't hang
+      // In original Megamania, letting enemies escape was bad but didn't break the game
+      if (state.currentWave) {
+        // Don't count as kill for score, but allow wave to progress
+        state.enemiesKilled++;
+      }
     }
   }
 
@@ -499,15 +507,27 @@ function update(dt) {
   }
 
   // Check wave completion
-  if (state.waveComplete && state.enemies.length === 0) {
-    waveCompleteTimer = 2;
+  if (state.waveComplete && state.enemies.length === 0 && !interWavePause) {
+    // Start inter-wave pause
+    interWavePause = true;
+    interWavePauseTimer = 3.0; // 3 second pause between waves
+    waveCompleteTimer = 2.5;
     waveCompleteAlpha = 1;
-    nextWave(state);
-    adjustedConfig = getAdjustedConfig(state.difficulty, state.level);
-    startWave(state, adjustedConfig);
-    waveAnnouncementTimer = 2;
-    waveAnnouncementAlpha = 1;
-    audioManager.playWaveStart();
+  }
+
+  // Handle inter-wave pause
+  if (interWavePause) {
+    interWavePauseTimer -= dt;
+    if (interWavePauseTimer <= 0) {
+      // Pause complete, start next wave
+      interWavePause = false;
+      nextWave(state);
+      adjustedConfig = getAdjustedConfig(state.difficulty, state.level);
+      startWave(state, adjustedConfig);
+      waveAnnouncementTimer = 2;
+      waveAnnouncementAlpha = 1;
+      audioManager.playWaveStart();
+    }
   }
 
   // Update UI animations
@@ -558,14 +578,17 @@ function render() {
     // Draw HUD
     drawHUD(ctx, state, gameLoop.fps);
 
+    // Draw energy bar (like original Megamania!)
+    drawEnergyBar(ctx, state);
+
     // Draw wave announcement
     if (waveAnnouncementAlpha > 0 && state.currentWave) {
       drawWaveAnnouncement(ctx, state.currentWave.name, waveAnnouncementAlpha);
     }
 
-    // Draw wave complete
+    // Draw wave complete (show both wave bonus and energy bonus)
     if (waveCompleteAlpha > 0) {
-      drawWaveComplete(ctx, state.waveBonus, waveCompleteAlpha);
+      drawWaveComplete(ctx, state.waveBonus, state.energyBonus, waveCompleteAlpha);
     }
   }
 }
