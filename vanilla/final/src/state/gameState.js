@@ -129,12 +129,12 @@ export function loseLife(state) {
 /**
  * Advance to next wave
  * @param {GameState} state - Game state
+ * @param {number} totalWaves - Total number of waves
  */
-export function nextWave(state) {
+export function nextWave(state, totalWaves = 15) {
   state.currentWaveIndex++;
 
   // Check if completed full cycle (all waves)
-  const totalWaves = 5; // From waves.js
   if (state.currentWaveIndex >= totalWaves) {
     state.currentWaveIndex = 0;
     state.level++;

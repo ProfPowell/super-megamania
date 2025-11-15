@@ -92,12 +92,13 @@ export const gameConfig = {
 
   ui: {
     hud: {
-      font: "16px 'Press Start 2P', monospace",
+      font: "14px 'Press Start 2P', monospace",
       color: '#ffffff',
-      scorePosition: { x: 10, y: 25 },
-      livesPosition: { x: 450, y: 25 },
-      wavePosition: { x: 250, y: 25 },
-      fpsPosition: { x: 10, y: 470 },
+      scorePosition: { x: 10, y: 10 },
+      livesPosition: { x: 630, y: 10 },
+      wavePosition: { x: 320, y: 10 },
+      levelPosition: { x: 320, y: 35 },
+      fpsPosition: { x: 10, y: 465 },
       showFPS: false
     }
   },

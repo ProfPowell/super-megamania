@@ -106,11 +106,12 @@ export function getPlayerHitbox(player) {
 }
 
 /**
- * Draw player
+ * Draw player with image support
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {Player} player - Player object
+ * @param {HTMLImageElement|null} image - Player sprite image (or null for fallback)
  */
-export function drawPlayer(ctx, player) {
+export function drawPlayer(ctx, player, image = null) {
   // Flash when invincible
   if (player.isInvincible) {
     const flashInterval = 100;
@@ -120,19 +121,24 @@ export function drawPlayer(ctx, player) {
     }
   }
 
-  // Draw as triangle pointing up
-  ctx.fillStyle = gameConfig.player.color;
-  ctx.beginPath();
-  ctx.moveTo(player.x + player.width / 2, player.y); // Top point
-  ctx.lineTo(player.x, player.y + player.height); // Bottom left
-  ctx.lineTo(player.x + player.width, player.y + player.height); // Bottom right
-  ctx.closePath();
-  ctx.fill();
+  if (image && image.complete) {
+    // Draw image
+    ctx.drawImage(image, player.x, player.y, player.width, player.height);
+  } else {
+    // Fallback: Draw as triangle pointing up
+    ctx.fillStyle = gameConfig.player.color;
+    ctx.beginPath();
+    ctx.moveTo(player.x + player.width / 2, player.y); // Top point
+    ctx.lineTo(player.x, player.y + player.height); // Bottom left
+    ctx.lineTo(player.x + player.width, player.y + player.height); // Bottom right
+    ctx.closePath();
+    ctx.fill();
 
-  // Add glow effect
-  ctx.strokeStyle = gameConfig.player.color;
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.5;
-  ctx.stroke();
-  ctx.globalAlpha = 1.0;
+    // Add glow effect
+    ctx.strokeStyle = gameConfig.player.color;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.5;
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+  }
 }

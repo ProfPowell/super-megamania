@@ -1,6 +1,6 @@
 /**
- * @fileoverview Enhanced main game entry point
- * Integrates themes, expanded waves, and all improvements
+ * @fileoverview Main game entry point
+ * Initializes and runs the game
  */
 
 import { initCanvas, clearCanvas, generateStars, drawStarfield } from './canvas.js';
@@ -10,7 +10,7 @@ import { getAdjustedConfig } from './config/gameConfig.js';
 import { createInputManager } from './input/inputManager.js';
 import { createPlayer, updatePlayer, canFire, recordFire, hitPlayer, getPlayerHitbox, drawPlayer } from './entities/player.js';
 import { createPlayerBullet, createEnemyBullet, updateProjectile, isOffScreen, drawProjectile } from './entities/projectile.js';
-import { createEnemy, updateEnemy, canEnemyFire, recordEnemyFire, isEnemyOffScreen, drawEnemy } from './entities/enemyExpanded.js';
+import { updateEnemy, canEnemyFire, recordEnemyFire, isEnemyOffScreen, drawEnemy } from './entities/enemy.js';
 import { checkProjectileEnemyCollision, checkPlayerEnemyCollision, checkPlayerBulletCollision } from './systems/collision.js';
 import { startWave, updateWaveManager } from './systems/waveManager.js';
 import { createExplosion, updateParticles, drawParticles } from './systems/particleSystem.js';
@@ -19,10 +19,6 @@ import { createMenuController } from './ui/menu.js';
 import { loadHighScores, isHighScore, addHighScore, renderHighScores } from './storage/highScores.js';
 import { loadSettings, saveSettings, loadPlayerName, savePlayerName, applySettingsToUI } from './storage/settings.js';
 import { createAudioManager } from './audio/audioManager.js';
-import { assetLoader } from './assets/assetLoader.js';
-import { getTheme } from './assets/themes.js';
-import { waves } from './config/wavesExpanded.js';
-import { getTotalWaves } from './config/wavesExpanded.js';
 
 // Global game state
 let state;
@@ -45,15 +41,10 @@ let waveCompleteTimer = 0;
 // Pause tracking
 let pausePressed = false;
 
-// Theme assets
-let currentTheme = null;
-let themeImages = {};
-let playerImage = null;
-
 /**
  * Initialize the game
  */
-async function init() {
+function init() {
   console.log('Initializing Super Megamania...');
 
   // Initialize canvas
@@ -66,9 +57,6 @@ async function init() {
   // Load settings
   const settings = loadSettings();
   applySettingsToUI(settings);
-
-  // Load theme
-  await loadTheme(settings.theme || 'cats');
 
   // Initialize audio
   audioManager = createAudioManager();
@@ -93,9 +81,6 @@ async function init() {
   // Create game loop
   gameLoop = createGameLoop(update, render);
 
-  // Update loading progress
-  updateLoadingProgress(100);
-
   // Hide loading screen
   setTimeout(() => {
     document.getElementById('loading-screen').classList.add('hidden');
@@ -105,60 +90,6 @@ async function init() {
   gameLoop.start();
 
   console.log('Game initialized!');
-}
-
-/**
- * Load theme assets
- * @param {string} themeName - Theme name
- */
-async function loadTheme(themeName) {
-  console.log(`Loading theme: ${themeName}`);
-
-  currentTheme = getTheme(themeName);
-  themeImages = {};
-
-  // Create images from theme data URLs
-  if (currentTheme.player) {
-    playerImage = await loadImageFromDataURL(currentTheme.player);
-  } else {
-    playerImage = null;
-  }
-
-  // Load enemy images
-  for (const [key, dataURL] of Object.entries(currentTheme.enemies)) {
-    if (dataURL) {
-      themeImages[key] = await loadImageFromDataURL(dataURL);
-    } else {
-      themeImages[key] = null;
-    }
-  }
-
-  console.log(`Theme loaded: ${currentTheme.name}`);
-}
-
-/**
- * Load image from data URL
- * @param {string} dataURL - Data URL
- * @returns {Promise<HTMLImageElement>}
- */
-function loadImageFromDataURL(dataURL) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null); // Return null on error
-    img.src = dataURL;
-  });
-}
-
-/**
- * Update loading progress
- * @param {number} percentage - Progress percentage (0-100)
- */
-function updateLoadingProgress(percentage) {
-  const progressBar = document.getElementById('loading-progress');
-  if (progressBar) {
-    progressBar.style.width = `${percentage}%`;
-  }
 }
 
 /**
@@ -193,16 +124,10 @@ function setupEventListeners() {
     menuController.showScreen('menu');
   });
 
-  document.getElementById('btn-back-settings').addEventListener('click', async () => {
+  document.getElementById('btn-back-settings').addEventListener('click', () => {
     audioManager.playMenuSelect();
     const settings = getSettingsFromUI();
     saveSettings(settings);
-
-    // Reload theme if changed
-    if (settings.theme !== currentTheme.name.toLowerCase()) {
-      await loadTheme(settings.theme);
-    }
-
     menuController.showScreen('menu');
   });
 
@@ -245,7 +170,6 @@ function setupEventListeners() {
 function getSettingsFromUI() {
   return {
     difficulty: document.getElementById('difficulty-select').value,
-    theme: document.getElementById('theme-select').value,
     sfxEnabled: document.getElementById('sfx-toggle').textContent === 'ON',
     musicEnabled: document.getElementById('music-toggle').textContent === 'ON',
     masterVolume: parseInt(document.getElementById('volume-slider').value) / 100
@@ -361,7 +285,7 @@ function handleGameOver() {
       const name = nameInput.value.toUpperCase().substring(0, 3);
       savePlayerName(name);
       addHighScore(name, state.score, state.level);
-    }, { once: true });
+    });
   } else {
     document.getElementById('new-high-score').classList.add('hidden');
     document.getElementById('name-entry').classList.add('hidden');
@@ -412,12 +336,10 @@ function update(dt) {
   // Update wave manager
   updateWaveManager(state, dt, adjustedConfig);
 
-  // Update enemies (pass player position for kamikaze tracking)
-  const playerPos = { x: state.player.x + state.player.width / 2, y: state.player.y };
-
+  // Update enemies
   for (let i = state.enemies.length - 1; i >= 0; i--) {
     const enemy = state.enemies[i];
-    updateEnemy(enemy, dt, playerPos);
+    updateEnemy(enemy, dt);
 
     // Enemy firing
     if (canEnemyFire(enemy)) {
@@ -533,15 +455,14 @@ function render() {
   drawStarfield(ctx, stars);
 
   if (state.currentState === GameStates.PLAYING || state.currentState === GameStates.PAUSED) {
-    // Draw player with theme image
+    // Draw player
     if (state.player) {
-      drawPlayer(ctx, state.player, playerImage);
+      drawPlayer(ctx, state.player);
     }
 
-    // Draw enemies with theme images
+    // Draw enemies
     for (const enemy of state.enemies) {
-      const enemyImage = themeImages[enemy.themeKey] || null;
-      drawEnemy(ctx, enemy, enemyImage);
+      drawEnemy(ctx, enemy);
     }
 
     // Draw bullets
