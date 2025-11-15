@@ -19,7 +19,7 @@ import { createMenuController } from './ui/menu.js';
 import { loadHighScores, isHighScore, addHighScore, renderHighScores } from './storage/highScores.js';
 import { loadSettings, saveSettings, loadPlayerName, savePlayerName, applySettingsToUI } from './storage/settings.js';
 import { createAudioManager } from './audio/audioManager.js';
-import { assetLoader } from './assets/assetLoader.js';
+import { assetLoader, loadThemeImages } from './assets/assetLoader.js';
 import { getTheme } from './assets/themes.js';
 import { waves } from './config/wavesExpanded.js';
 import { getTotalWaves } from './config/wavesExpanded.js';
@@ -111,45 +111,28 @@ async function init() {
 
 /**
  * Load theme assets
+ * Supports both SVG data URLs and external PNG/JPG files
  * @param {string} themeName - Theme name
  */
 async function loadTheme(themeName) {
   console.log(`Loading theme: ${themeName}`);
 
   currentTheme = getTheme(themeName);
+
+  // Use the unified theme loader (handles both data URLs and external files)
+  const loadedImages = await loadThemeImages(currentTheme);
+
+  // Extract player and enemy images
+  playerImage = loadedImages.player || null;
   themeImages = {};
 
-  // Create images from theme data URLs
-  if (currentTheme.player) {
-    playerImage = await loadImageFromDataURL(currentTheme.player);
-  } else {
-    playerImage = null;
-  }
-
-  // Load enemy images
-  for (const [key, dataURL] of Object.entries(currentTheme.enemies)) {
-    if (dataURL) {
-      themeImages[key] = await loadImageFromDataURL(dataURL);
-    } else {
-      themeImages[key] = null;
+  for (const [key, image] of Object.entries(loadedImages)) {
+    if (key !== 'player') {
+      themeImages[key] = image;
     }
   }
 
-  console.log(`Theme loaded: ${currentTheme.name}`);
-}
-
-/**
- * Load image from data URL
- * @param {string} dataURL - Data URL
- * @returns {Promise<HTMLImageElement>}
- */
-function loadImageFromDataURL(dataURL) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null); // Return null on error
-    img.src = dataURL;
-  });
+  console.log(`Theme loaded: ${currentTheme.name} (${Object.keys(themeImages).length} enemy sprites)`);
 }
 
 /**

@@ -266,6 +266,41 @@ export const retroTheme = {
 };
 
 /**
+ * EXAMPLE: Custom theme using external PNG/JPG files
+ *
+ * To use external image files instead of SVG data URLs:
+ * 1. Place your PNG/JPG files in the assets/images directory
+ * 2. Create a theme object like this (uncomment to use):
+ */
+/*
+export const customTheme = {
+  name: 'Custom',
+  // External file paths work alongside data URLs
+  player: 'assets/images/player/ship.png',  // External PNG file
+  enemies: {
+    // Original Megamania enemies (if you have the sprites)
+    hamburger: 'assets/images/enemies/hamburger.png',    // 20 points
+    icecream: 'assets/images/enemies/icecream.png',      // 30 points
+    magnet: 'assets/images/enemies/magnet.png',          // 40 points
+    tire: 'assets/images/enemies/tire.png',              // 50 points
+    diamond: 'assets/images/enemies/diamond.png',        // 60 points
+    iron: 'assets/images/enemies/iron.png',              // 70 points
+    bowtie: 'assets/images/enemies/bowtie.png',          // 80 points
+    dice: 'assets/images/enemies/dice.png',              // 90 points
+
+    // Or use wave-based naming
+    wave1: 'assets/images/enemies/enemy1.png',
+    wave2: 'assets/images/enemies/enemy2.png',
+    wave3: 'assets/images/enemies/enemy3.png',
+    // ... etc
+  },
+  // Optional: custom bullet images
+  playerBullet: 'assets/images/bullets/player_bullet.png',
+  enemyBullet: 'assets/images/bullets/enemy_bullet.png'
+};
+*/
+
+/**
  * All available themes
  */
 export const themes = {
@@ -275,6 +310,8 @@ export const themes = {
   space: spaceTheme,
   emoji: emojiTheme,
   retro: retroTheme
+  // Add custom themes here:
+  // custom: customTheme
 };
 
 /**

@@ -172,6 +172,86 @@ export class AssetLoader {
 }
 
 /**
+ * Check if a URL is a data URL (inline image)
+ * @param {string} url - URL to check
+ * @returns {boolean}
+ */
+export function isDataURL(url) {
+  return url && url.startsWith('data:');
+}
+
+/**
+ * Check if a URL is an external file path
+ * @param {string} url - URL to check
+ * @returns {boolean}
+ */
+export function isExternalFile(url) {
+  return url && !url.startsWith('data:') && (
+    url.endsWith('.png') ||
+    url.endsWith('.jpg') ||
+    url.endsWith('.jpeg') ||
+    url.endsWith('.gif') ||
+    url.endsWith('.svg')
+  );
+}
+
+/**
+ * Load image from either data URL or external file
+ * @param {string} source - Data URL or file path
+ * @returns {Promise<HTMLImageElement>}
+ */
+export function loadImageFromSource(source) {
+  return new Promise((resolve, reject) => {
+    if (!source) {
+      resolve(null);
+      return;
+    }
+
+    const img = new Image();
+
+    img.onload = () => resolve(img);
+
+    img.onerror = () => {
+      console.warn(`Failed to load image from: ${source}`);
+      resolve(null); // Return null instead of rejecting for graceful fallback
+    };
+
+    img.src = source;
+  });
+}
+
+/**
+ * Load multiple images from theme configuration
+ * @param {Object} themeConfig - Theme configuration with image sources
+ * @returns {Promise<Object>} Object mapping keys to loaded images
+ */
+export async function loadThemeImages(themeConfig) {
+  const images = {};
+
+  // Load player image
+  if (themeConfig.player) {
+    images.player = await loadImageFromSource(themeConfig.player);
+  }
+
+  // Load enemy images
+  if (themeConfig.enemies) {
+    for (const [key, source] of Object.entries(themeConfig.enemies)) {
+      images[key] = await loadImageFromSource(source);
+    }
+  }
+
+  // Load bullet images if provided
+  if (themeConfig.playerBullet) {
+    images.playerBullet = await loadImageFromSource(themeConfig.playerBullet);
+  }
+  if (themeConfig.enemyBullet) {
+    images.enemyBullet = await loadImageFromSource(themeConfig.enemyBullet);
+  }
+
+  return images;
+}
+
+/**
  * Create global asset loader instance
  */
 export const assetLoader = new AssetLoader();
