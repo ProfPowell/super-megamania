@@ -41,6 +41,15 @@ export const gameConfig = {
       color: '#ffffff'
     },
 
+    // Energy system (like original Megamania)
+    energy: {
+      maxEnergy: 1000,           // Maximum energy per life
+      depletionRate: 100,        // Energy lost per second (10 seconds max)
+      bonusPointsMultiplier: 1,  // Energy * multiplier = bonus points
+      warningThreshold: 300,     // Show warning when energy below this
+      criticalThreshold: 150     // Critical warning (red/flashing)
+    },
+
     color: '#00ff00',
     hitboxScale: 0.8
   },
@@ -99,7 +108,23 @@ export const gameConfig = {
       wavePosition: { x: 320, y: 10 },
       levelPosition: { x: 320, y: 35 },
       fpsPosition: { x: 10, y: 465 },
-      showFPS: false
+      showFPS: false,
+
+      // Energy bar (bottom of screen, centered)
+      energyBar: {
+        x: 170,               // Left edge position
+        y: 460,               // Bottom of screen
+        width: 300,           // Bar width
+        height: 12,           // Bar height
+        backgroundColor: '#333333',
+        normalColor: '#00ff00',     // Green when energy is good
+        warningColor: '#ffff00',    // Yellow when low
+        criticalColor: '#ff0000',   // Red when critical
+        borderColor: '#ffffff',
+        showPercentage: false,      // Don't clutter with numbers
+        showLabel: true,            // Show "ENERGY" label
+        labelOffset: -18            // Label above bar
+      }
     }
   },
 

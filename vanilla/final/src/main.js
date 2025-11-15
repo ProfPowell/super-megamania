@@ -5,7 +5,7 @@
 
 import { initCanvas, clearCanvas, generateStars, drawStarfield } from './canvas.js';
 import { createGameLoop } from './gameLoop.js';
-import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave } from './state/gameState.js';
+import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy } from './state/gameState.js';
 import { getAdjustedConfig } from './config/gameConfig.js';
 import { createInputManager } from './input/inputManager.js';
 import { createPlayer, updatePlayer, canFire, recordFire, hitPlayer, getPlayerHitbox, drawPlayer } from './entities/player.js';
@@ -14,7 +14,7 @@ import { createEnemy, updateEnemy, canEnemyFire, recordEnemyFire, isEnemyOffScre
 import { checkProjectileEnemyCollision, checkPlayerEnemyCollision, checkPlayerBulletCollision } from './systems/collision.js';
 import { startWave, updateWaveManager } from './systems/waveManager.js';
 import { createExplosion, updateParticles, drawParticles } from './systems/particleSystem.js';
-import { drawHUD, drawWaveAnnouncement, drawWaveComplete } from './ui/hud.js';
+import { drawHUD, drawWaveAnnouncement, drawWaveComplete, drawEnergyBar } from './ui/hud.js';
 import { createMenuController } from './ui/menu.js';
 import { loadHighScores, isHighScore, addHighScore, renderHighScores } from './storage/highScores.js';
 import { loadSettings, saveSettings, loadPlayerName, savePlayerName, applySettingsToUI } from './storage/settings.js';
@@ -364,6 +364,20 @@ function update(dt) {
 
   state.gameTime += dt;
 
+  // Deplete energy over time (like original Megamania!)
+  const energyDepleted = depleteEnergy(state, dt);
+  if (energyDepleted) {
+    // Ran out of energy - lose a life
+    const gameOver = loseLife(state);
+    if (gameOver) {
+      handleGameOver();
+      return;
+    }
+    // Refill energy for next life
+    refillEnergy(state);
+    audioManager.playPlayerHit();
+  }
+
   // Get input
   const input = inputManager.getState();
 
@@ -564,14 +578,17 @@ function render() {
     // Draw HUD
     drawHUD(ctx, state, gameLoop.fps);
 
+    // Draw energy bar (like original Megamania!)
+    drawEnergyBar(ctx, state);
+
     // Draw wave announcement
     if (waveAnnouncementAlpha > 0 && state.currentWave) {
       drawWaveAnnouncement(ctx, state.currentWave.name, waveAnnouncementAlpha);
     }
 
-    // Draw wave complete
+    // Draw wave complete (show both wave bonus and energy bonus)
     if (waveCompleteAlpha > 0) {
-      drawWaveComplete(ctx, state.waveBonus, waveCompleteAlpha);
+      drawWaveComplete(ctx, state.waveBonus, state.energyBonus, waveCompleteAlpha);
     }
   }
 }
