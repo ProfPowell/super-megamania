@@ -326,6 +326,27 @@ export function createAudioManager() {
     },
 
     /**
+     * Play power-up collection sound
+     */
+    playPowerUp() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+
+      // Magical ascending chime
+      playBeep(600, 0.08, 'sine');
+      setTimeout(() => playBeep(800, 0.08, 'triangle'), 60);
+      setTimeout(() => playBeep(1000, 0.08, 'sine'), 120);
+      setTimeout(() => playBeep(1200, 0.12, 'triangle'), 180);
+      setTimeout(() => playBeep(1500, 0.15, 'sine'), 240);
+
+      // Add sparkle effect
+      setTimeout(() => {
+        playBeep(1800, 0.05, 'sine');
+        setTimeout(() => playBeep(2000, 0.05, 'sine'), 30);
+      }, 360);
+    },
+
+    /**
      * Play menu navigate sound
      */
     playMenuNavigate() {

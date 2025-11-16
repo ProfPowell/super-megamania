@@ -5,16 +5,17 @@
 
 import { initCanvas, clearCanvas, generateStars, drawStarfield, updateStarfield } from './canvas.js';
 import { createGameLoop } from './gameLoop.js';
-import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy, startEnergyRefill, updateEnergyAnimation } from './state/gameState.js';
+import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy, startEnergyRefill, updateEnergyAnimation, incrementCombo, updateCombo, resetCombo } from './state/gameState.js';
 import { getAdjustedConfig } from './config/gameConfig.js';
 import { createInputManager } from './input/inputManager.js';
 import { createPlayer, updatePlayer, canFire, recordFire, hitPlayer, getPlayerHitbox, drawPlayer } from './entities/player.js';
 import { createPlayerBullet, createEnemyBullet, updateProjectile, isOffScreen, drawProjectile } from './entities/projectile.js';
 import { createEnemy, updateEnemy, canEnemyFire, recordEnemyFire, isEnemyOffScreen, drawEnemy } from './entities/enemyExpanded.js';
+import { maybeCreatePowerUpDrop, updatePowerUp, drawPowerUp, isPowerUpOffScreen, checkPlayerPowerUpCollision, applyPowerUp, updateActivePowerUps, hasPowerUp } from './entities/powerup.js';
 import { checkProjectileEnemyCollision, checkPlayerEnemyCollision, checkPlayerBulletCollision } from './systems/collision.js';
 import { startWave, updateWaveManager } from './systems/waveManager.js';
 import { createExplosion, updateParticles, drawParticles } from './systems/particleSystem.js';
-import { drawHUD, drawWaveAnnouncement, drawWaveComplete, drawEnergyBar } from './ui/hud.js';
+import { drawHUD, drawWaveAnnouncement, drawWaveComplete, drawEnergyBar, drawActivePowerUps } from './ui/hud.js';
 import { createMenuController } from './ui/menu.js';
 import { loadHighScores, isHighScore, addHighScore, renderHighScores } from './storage/highScores.js';
 import { loadSettings, saveSettings, loadPlayerName, savePlayerName, applySettingsToUI } from './storage/settings.js';
@@ -405,6 +406,9 @@ function update(dt) {
   // Update moving starfield background
   updateStarfield(stars, dt);
 
+  // Update COMBO timer (breaks combo if no kills within 2 seconds)
+  updateCombo(state, dt);
+
   // Deplete energy over time (like original Megamania!)
   const energyDepleted = depleteEnergy(state, dt);
   if (energyDepleted) {
@@ -437,13 +441,38 @@ function update(dt) {
   updatePlayer(state.player, dt, direction);
 
   // Player firing
-  if (input.fire && canFire(state.player)) {
-    if (state.playerBullets.length < 5) {
-      const bullet = createPlayerBullet(
-        state.player.x + state.player.width / 2,
-        state.player.y
-      );
-      state.playerBullets.push(bullet);
+  if (input.fire) {
+    // Check fire rate (reduced by rapid fire power-up)
+    let fireRateModifier = 1;
+    if (hasPowerUp(state, 'rapidFire')) {
+      fireRateModifier = 0.33; // 3x faster (1/3 the delay)
+    }
+
+    if (canFire(state.player, fireRateModifier)) {
+      // Spread shot fires 3 bullets at angles
+      if (hasPowerUp(state, 'spreadShot')) {
+        const spreadAngle = 0.3; // radians
+        const angles = [-spreadAngle, 0, spreadAngle];
+
+        for (const angle of angles) {
+          const bullet = createPlayerBullet(
+            state.player.x + state.player.width / 2,
+            state.player.y,
+            angle
+          );
+          state.playerBullets.push(bullet);
+        }
+      } else {
+        // Normal single shot
+        if (state.playerBullets.length < 5) {
+          const bullet = createPlayerBullet(
+            state.player.x + state.player.width / 2,
+            state.player.y
+          );
+          state.playerBullets.push(bullet);
+        }
+      }
+
       recordFire(state.player);
       audioManager.playPlayerFire();
     }
@@ -497,12 +526,22 @@ function update(dt) {
       state.playerBullets.splice(i, 1);
       state.enemies = state.enemies.filter(e => e !== hitEnemy);
       state.enemiesKilled++;
+
+      // INCREMENT COMBO! 🔥
+      incrementCombo(state);
+
       const extraLife = addScore(state, hitEnemy.scoreValue);
       if (extraLife) {
         audioManager.playExtraLife();
       }
       state.particles.push(...createExplosion(hitEnemy.x, hitEnemy.y, hitEnemy.color));
       audioManager.playEnemyExplode();
+
+      // MAYBE DROP A POWER-UP! 💫
+      const powerUpDrop = maybeCreatePowerUpDrop(hitEnemy.x, hitEnemy.y);
+      if (powerUpDrop) {
+        state.powerUps.push(powerUpDrop);
+      }
     }
   }
 
@@ -519,8 +558,31 @@ function update(dt) {
   // Update particles
   updateParticles(state.particles, dt);
 
-  // Check player collisions
-  if (!state.player.isInvincible) {
+  // Update power-ups
+  for (let i = state.powerUps.length - 1; i >= 0; i--) {
+    const powerUp = state.powerUps[i];
+    updatePowerUp(powerUp, dt);
+
+    // Remove if off screen
+    if (isPowerUpOffScreen(powerUp)) {
+      state.powerUps.splice(i, 1);
+      continue;
+    }
+
+    // Check collision with player
+    if (checkPlayerPowerUpCollision(state.player, powerUp)) {
+      state.powerUps.splice(i, 1);
+      applyPowerUp(state, powerUp);
+      audioManager.playPowerUp();
+    }
+  }
+
+  // Update active power-up timers
+  updateActivePowerUps(state);
+
+  // Check player collisions (skip if invincible or has shield)
+  const hasShield = hasPowerUp(state, 'shield');
+  if (!state.player.isInvincible && !hasShield) {
     const playerHitbox = getPlayerHitbox(state.player);
 
     // Player vs enemies
@@ -637,11 +699,19 @@ function render() {
     // Draw particles
     drawParticles(ctx, state.particles);
 
+    // Draw power-ups
+    for (const powerUp of state.powerUps) {
+      drawPowerUp(ctx, powerUp);
+    }
+
     // Draw HUD
     drawHUD(ctx, state, gameLoop.fps);
 
     // Draw energy bar (like original Megamania!)
     drawEnergyBar(ctx, state);
+
+    // Draw active power-ups
+    drawActivePowerUps(ctx, state);
 
     // Draw wave announcement
     if (waveAnnouncementAlpha > 0 && state.currentWave) {
