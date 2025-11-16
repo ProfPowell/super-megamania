@@ -326,16 +326,19 @@ body {
 
 /* Game Over */
 .final-score {
-  font-size: 24px;
+  font-size: 28px;
   color: #00ff00;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  text-shadow: 0 0 10px #00ff00;
 }
 
 .new-high-score {
   font-size: 20px;
   color: #ffff00;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  margin-top: 10px;
   animation: blink 1s infinite;
+  text-shadow: 0 0 10px #ffff00;
 }
 
 @keyframes blink {
@@ -349,7 +352,13 @@ body {
 
 /* Name Entry */
 .name-entry {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  margin-top: 10px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #ffff00;
+  border-radius: 10px;
+  display: inline-block;
 }
 
 .name-entry.hidden {
@@ -359,19 +368,27 @@ body {
 .name-entry label {
   display: block;
   font-size: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  color: #ffff00;
 }
 
 .name-input {
   background: #000;
   border: 3px solid #fff;
-  color: #fff;
+  color: #00ff00;
   font-family: 'Press Start 2P', monospace;
-  font-size: 24px;
-  padding: 10px;
-  width: 120px;
+  font-size: 28px;
+  padding: 15px;
+  width: 150px;
   text-align: center;
   text-transform: uppercase;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+
+.name-input:focus {
+  outline: none;
+  border-color: #00ff00;
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
 }
 
 /* Loading Screen */

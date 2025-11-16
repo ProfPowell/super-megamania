@@ -5,7 +5,7 @@
 
 import { initCanvas, clearCanvas, generateStars, drawStarfield } from './canvas.js';
 import { createGameLoop } from './gameLoop.js';
-import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy } from './state/gameState.js';
+import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy, startEnergyRefill, updateEnergyAnimation } from './state/gameState.js';
 import { getAdjustedConfig } from './config/gameConfig.js';
 import { createInputManager } from './input/inputManager.js';
 import { createPlayer, updatePlayer, canFire, recordFire, hitPlayer, getPlayerHitbox, drawPlayer } from './entities/player.js';
@@ -554,11 +554,21 @@ function update(dt) {
     interWavePauseTimer = 3.0; // 3 second pause between waves
     waveCompleteTimer = 2.5;
     waveCompleteAlpha = 1;
+
+    // Start energy refill animation
+    startEnergyRefill(state);
   }
 
   // Handle inter-wave pause
   if (interWavePause) {
     interWavePauseTimer -= dt;
+
+    // Update energy refill animation
+    const animCompleted = updateEnergyAnimation(state, dt);
+    if (animCompleted) {
+      audioManager.playEnergyRefill();
+    }
+
     if (interWavePauseTimer <= 0) {
       // Pause complete, start next wave
       interWavePause = false;

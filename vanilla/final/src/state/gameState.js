@@ -76,6 +76,11 @@ export function createGameState(difficulty = 'normal') {
     lastEnemySpawnTime: 0,
     energyDepletionTimer: 0,  // Timer before energy starts depleting
 
+    // Energy animation
+    energyAnimating: false,
+    energyAnimationTarget: gameConfig.player.energy.maxEnergy,
+    energyAnimationSpeed: 2000, // Points per second during animation
+
     // Wave spawning
     enemiesSpawned: 0,
     spawnComplete: false
@@ -172,12 +177,54 @@ export function depleteEnergy(state, dt) {
 }
 
 /**
- * Refill energy (when starting new wave or gaining life)
+ * Start animated energy refill
+ * @param {GameState} state - Game state
+ */
+export function startEnergyRefill(state) {
+  state.energyAnimating = true;
+  state.energyAnimationTarget = state.maxEnergy;
+  state.energyDepletionTimer = 0;  // Reset timer so energy doesn't start depleting immediately
+}
+
+/**
+ * Update energy animation (call each frame)
+ * @param {GameState} state - Game state
+ * @param {number} dt - Delta time in seconds
+ * @returns {boolean} True if animation just completed
+ */
+export function updateEnergyAnimation(state, dt) {
+  if (!state.energyAnimating) return false;
+
+  const diff = state.energyAnimationTarget - state.energy;
+
+  if (Math.abs(diff) < 10) {
+    // Close enough - snap to target
+    state.energy = state.energyAnimationTarget;
+    state.energyAnimating = false;
+    return true; // Animation completed!
+  }
+
+  // Animate towards target
+  const step = state.energyAnimationSpeed * dt;
+  if (diff > 0) {
+    // Filling up
+    state.energy = Math.min(state.energy + step, state.energyAnimationTarget);
+  } else {
+    // Draining down
+    state.energy = Math.max(state.energy + diff * 5 * dt, state.energyAnimationTarget);
+  }
+
+  return false;
+}
+
+/**
+ * Refill energy instantly (for immediate needs)
  * @param {GameState} state - Game state
  */
 export function refillEnergy(state) {
   state.energy = state.maxEnergy;
-  state.energyDepletionTimer = 0;  // Reset timer so energy doesn't start depleting immediately
+  state.energyDepletionTimer = 0;
+  state.energyAnimating = false;
 }
 
 /**
@@ -216,8 +263,8 @@ export function nextWave(state, totalWaves = 15) {
     addScore(state, state.energyBonus);
   }
 
-  // Refill energy for next wave
-  refillEnergy(state);
+  // Energy refill is handled via animation during inter-wave pause
+  // (no instant refill here)
 
   // Reset wave tracking
   state.enemiesKilled = 0;

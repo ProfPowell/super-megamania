@@ -87,7 +87,8 @@ export const gameConfig = {
     sfxVolume: 0.8,
     musicVolume: 0.5,
     sfxEnabled: true,
-    musicEnabled: false
+    musicEnabled: true,  // Changed to true - music ON by default
+    musicFile: 'assets/music/background.wav'  // Background music file
   },
 
   controls: {
