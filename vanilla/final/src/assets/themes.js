@@ -317,6 +317,22 @@ export const demoTheme = {
 };
 
 /**
+ * ABSURD MODE - Embrace the chaos! 🌭🤖☕😱
+ * Modern internet/AI culture absurdity
+ */
+export const absurdTheme = {
+  name: 'ABSURD MODE',
+  player: 'assets/images/absurd/player/hotdog.svg',  // Dancing hot dog!
+  enemies: {
+    wave1: 'assets/images/absurd/enemies/angry-ai.svg',       // Angry AI robot
+    wave2: 'assets/images/absurd/enemies/loading.svg',        // Eternal loading spinner
+    wave3: 'assets/images/absurd/enemies/coffee.svg',         // Coffee cup (dev fuel)
+    wave4: 'assets/images/absurd/enemies/error404.svg',       // Error 404 Not Found
+    wave5: 'assets/images/absurd/enemies/screaming-emoji.svg', // Screaming emoji 😱
+  }
+};
+
+/**
  * All available themes
  */
 export const themes = {
@@ -326,7 +342,8 @@ export const themes = {
   space: spaceTheme,
   emoji: emojiTheme,
   retro: retroTheme,
-  demo: demoTheme  // Demo theme with external files
+  demo: demoTheme,     // Demo theme with external files
+  absurd: absurdTheme  // ABSURD MODE - Maximum chaos! 🌭
   // Add custom themes here:
   // custom: customTheme
 };

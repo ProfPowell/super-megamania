@@ -133,6 +133,11 @@ async function loadTheme(themeName) {
     }
   }
 
+  // Update audio manager with current theme (for absurd mode sounds)
+  if (audioManager) {
+    audioManager.setTheme(themeName);
+  }
+
   console.log(`Theme loaded: ${currentTheme.name} (${Object.keys(themeImages).length} enemy sprites)`);
 }
 

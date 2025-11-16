@@ -19,6 +19,9 @@ export function createAudioManager() {
   let musicAudio = null;
   let musicLoaded = false;
 
+  // Track current theme for absurd mode sounds
+  let currentTheme = 'classic';
+
   // Initialize on first user interaction (required by browsers)
   let initialized = false;
 
@@ -63,6 +66,86 @@ export function createAudioManager() {
     } catch (error) {
       console.warn('Failed to play beep:', error);
     }
+  }
+
+  /**
+   * ABSURD MODE SOUNDS - Maximum chaos! 🌭
+   */
+
+  function playAbsurdPlayerFire() {
+    // "Pew pew" but make it silly
+    playBeep(1200, 0.05, 'sine');
+    setTimeout(() => playBeep(800, 0.05, 'sine'), 50);
+    // Add a little "boing" at the end
+    setTimeout(() => playBeep(1500, 0.03, 'triangle'), 100);
+  }
+
+  function playAbsurdEnemyExplode() {
+    // Cartoonish explosion with ascending pitches (opposite of normal)
+    const sounds = [
+      { freq: 100, type: 'sawtooth' },
+      { freq: 200, type: 'square' },
+      { freq: 400, type: 'sine' },
+      { freq: 800, type: 'triangle' }
+    ];
+
+    sounds.forEach((sound, i) => {
+      setTimeout(() => playBeep(sound.freq, 0.08, sound.type), i * 40);
+    });
+
+    // Add a silly "pop" at the end
+    setTimeout(() => playBeep(1200, 0.05, 'sine'), 200);
+  }
+
+  function playAbsurdPlayerDeath() {
+    // Sad trombone / game show fail sound
+    playBeep(400, 0.3, 'sawtooth');
+    setTimeout(() => playBeep(350, 0.3, 'sawtooth'), 250);
+    setTimeout(() => playBeep(300, 0.3, 'sawtooth'), 500);
+    setTimeout(() => playBeep(200, 0.5, 'sawtooth'), 750);
+
+    // Add a "womp womp womp" effect
+    setTimeout(() => {
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => playBeep(150 - i * 20, 0.1, 'triangle'), i * 150);
+      }
+    }, 1200);
+  }
+
+  function playAbsurdWaveStart() {
+    // Silly fanfare / achievement sound
+    const notes = [400, 500, 600, 800];
+    notes.forEach((freq, i) => {
+      setTimeout(() => playBeep(freq, 0.15, 'sine'), i * 80);
+    });
+
+    // Add a glitchy descending sound at the end
+    setTimeout(() => {
+      playBeep(900, 0.1, 'square');
+      setTimeout(() => playBeep(700, 0.1, 'square'), 50);
+    }, 350);
+  }
+
+  function playAbsurdEnergyRefill() {
+    // Power-up sound with weird glitch
+    playBeep(300, 0.08, 'triangle');
+    setTimeout(() => playBeep(500, 0.08, 'triangle'), 40);
+    setTimeout(() => playBeep(700, 0.08, 'triangle'), 80);
+    setTimeout(() => playBeep(1000, 0.15, 'sine'), 120);
+
+    // Glitchy wobble
+    setTimeout(() => {
+      playBeep(950, 0.05, 'square');
+      setTimeout(() => playBeep(1050, 0.05, 'square'), 30);
+      setTimeout(() => playBeep(1000, 0.1, 'sine'), 60);
+    }, 280);
+  }
+
+  function playAbsurdMenuSelect() {
+    // Quirky menu sound
+    playBeep(800, 0.05, 'sine');
+    setTimeout(() => playBeep(1200, 0.08, 'triangle'), 50);
+    setTimeout(() => playBeep(900, 0.05, 'sine'), 130);
   }
 
   /**
@@ -139,7 +222,11 @@ export function createAudioManager() {
      */
     playPlayerFire() {
       init();
-      playBeep(800, 0.1, 'square');
+      if (currentTheme === 'absurd') {
+        playAbsurdPlayerFire();
+      } else {
+        playBeep(800, 0.1, 'square');
+      }
     },
 
     /**
@@ -147,7 +234,11 @@ export function createAudioManager() {
      */
     playEnemyExplode() {
       init();
-      playBeep(150, 0.2, 'sawtooth');
+      if (currentTheme === 'absurd') {
+        playAbsurdEnemyExplode();
+      } else {
+        playBeep(150, 0.2, 'sawtooth');
+      }
     },
 
     /**
@@ -165,11 +256,15 @@ export function createAudioManager() {
       init();
       if (!sfxEnabled || !audioContext) return;
 
-      // Dramatic descending explosion
-      playBeep(300, 0.15, 'sawtooth');
-      setTimeout(() => playBeep(200, 0.15, 'sawtooth'), 100);
-      setTimeout(() => playBeep(100, 0.3, 'sawtooth'), 200);
-      setTimeout(() => playBeep(50, 0.4, 'sawtooth'), 350);
+      if (currentTheme === 'absurd') {
+        playAbsurdPlayerDeath();
+      } else {
+        // Dramatic descending explosion
+        playBeep(300, 0.15, 'sawtooth');
+        setTimeout(() => playBeep(200, 0.15, 'sawtooth'), 100);
+        setTimeout(() => playBeep(100, 0.3, 'sawtooth'), 200);
+        setTimeout(() => playBeep(50, 0.4, 'sawtooth'), 350);
+      }
     },
 
     /**
@@ -177,7 +272,11 @@ export function createAudioManager() {
      */
     playWaveStart() {
       init();
-      playBeep(600, 0.3, 'sine');
+      if (currentTheme === 'absurd') {
+        playAbsurdWaveStart();
+      } else {
+        playBeep(600, 0.3, 'sine');
+      }
     },
 
     /**
@@ -187,11 +286,15 @@ export function createAudioManager() {
       init();
       if (!sfxEnabled || !audioContext) return;
 
-      // Rising tone for excitement!
-      playBeep(200, 0.1, 'sine');
-      setTimeout(() => playBeep(300, 0.1, 'sine'), 50);
-      setTimeout(() => playBeep(400, 0.1, 'sine'), 100);
-      setTimeout(() => playBeep(600, 0.2, 'sine'), 150);
+      if (currentTheme === 'absurd') {
+        playAbsurdEnergyRefill();
+      } else {
+        // Rising tone for excitement!
+        playBeep(200, 0.1, 'sine');
+        setTimeout(() => playBeep(300, 0.1, 'sine'), 50);
+        setTimeout(() => playBeep(400, 0.1, 'sine'), 100);
+        setTimeout(() => playBeep(600, 0.2, 'sine'), 150);
+      }
     },
 
     /**
@@ -220,7 +323,11 @@ export function createAudioManager() {
      */
     playMenuSelect() {
       init();
-      playBeep(600, 0.1, 'sine');
+      if (currentTheme === 'absurd') {
+        playAbsurdMenuSelect();
+      } else {
+        playBeep(600, 0.1, 'sine');
+      }
     },
 
     /**
@@ -280,6 +387,14 @@ export function createAudioManager() {
         musicEnabled,
         masterVolume
       };
+    },
+
+    /**
+     * Set current theme (for absurd mode sounds)
+     * @param {string} theme - Theme name
+     */
+    setTheme(theme) {
+      currentTheme = theme;
     }
   };
 }
