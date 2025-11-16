@@ -181,16 +181,16 @@ export function updateEnemy(enemy, dt, playerPos = null) {
       updateSweepPattern(enemy, dt);
   }
 
-  // Horizontal wrapping - if enemy goes off left/right, wrap to other side
+  // Horizontal wrapping - constrain to play area with minimal overhang
   const playAreaWidth = 640;
-  const margin = enemy.width;
+  const edgeMargin = 10; // Tighter constraint - only 10px past edge
 
-  if (enemy.x < -margin) {
+  if (enemy.x < -edgeMargin) {
     // Went off left, wrap to right
-    enemy.x = playAreaWidth;
-  } else if (enemy.x > playAreaWidth + margin) {
+    enemy.x = playAreaWidth - edgeMargin;
+  } else if (enemy.x > playAreaWidth + edgeMargin) {
     // Went off right, wrap to left
-    enemy.x = -margin;
+    enemy.x = edgeMargin;
   }
 }
 
@@ -362,6 +362,16 @@ function updateKamikazePattern(enemy, dt, playerPos) {
  */
 export function canEnemyFire(enemy) {
   if (enemy.fireRate === 0) return false;
+
+  // Don't fire if enemy is outside the visible play area
+  // This prevents bullets from spawning in weird positions
+  const playAreaWidth = 640;
+  const margin = 20; // Safety margin
+
+  if (enemy.x < -margin || enemy.x > playAreaWidth + margin) {
+    return false;
+  }
+
   const now = Date.now();
   return now - enemy.lastFireTime >= enemy.fireRate;
 }

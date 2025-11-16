@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Error 404 Not Found -->
+  <!-- Browser window frame -->
+  <rect x="2" y="4" width="28" height="24" rx="1" fill="#1e293b" stroke="#0f172a" stroke-width="1"/>
+
+  <!-- Browser address bar -->
+  <rect x="2" y="4" width="28" height="5" rx="1" fill="#334155"/>
+  <circle cx="5" cy="6.5" r="1" fill="#ef4444"/>
+  <circle cx="8" cy="6.5" r="1" fill="#fbbf24"/>
+  <circle cx="11" cy="6.5" r="1" fill="#22c55e"/>
+
+  <!-- 404 text -->
+  <text x="16" y="17" text-anchor="middle" font-family="monospace"
+        font-size="10" fill="#ef4444" font-weight="bold">404</text>
+
+  <!-- "Not Found" text -->
+  <text x="16" y="23" text-anchor="middle" font-family="monospace"
+        font-size="4" fill="#94a3b8">NOT FOUND</text>
+
+  <!-- Sad face made of code -->
+  <text x="10" y="15" font-family="monospace" font-size="4" fill="#64748b">:(</text>
+
+  <!-- Glitch effect lines -->
+  <line x1="6" y1="12" x2="26" y2="12" stroke="#ef4444" stroke-width="0.5" opacity="0.3">
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="0.3s" repeatCount="indefinite"/>
+  </line>
+  <line x1="6" y1="20" x2="26" y2="20" stroke="#3b82f6" stroke-width="0.5" opacity="0.3">
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="0.4s" repeatCount="indefinite"/>
+  </line>
+</svg>
