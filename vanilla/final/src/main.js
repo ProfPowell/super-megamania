@@ -14,7 +14,8 @@ import { createEnemy, updateEnemy, canEnemyFire, recordEnemyFire, isEnemyOffScre
 import { maybeCreatePowerUpDrop, updatePowerUp, drawPowerUp, isPowerUpOffScreen, checkPlayerPowerUpCollision, applyPowerUp, updateActivePowerUps, hasPowerUp } from './entities/powerup.js';
 import { checkProjectileEnemyCollision, checkPlayerEnemyCollision, checkPlayerBulletCollision } from './systems/collision.js';
 import { startWave, updateWaveManager } from './systems/waveManager.js';
-import { createExplosion, updateParticles, drawParticles } from './systems/particleSystem.js';
+import { createExplosion, createAbsurdExplosion, createTrailParticle, updateParticles, drawParticles } from './systems/particleSystem.js';
+import { triggerScreenShake, updateScreenShake, applyScreenShake, resetScreenShake } from './systems/screenShake.js';
 import { drawHUD, drawWaveAnnouncement, drawWaveComplete, drawEnergyBar, drawActivePowerUps } from './ui/hud.js';
 import { createMenuController } from './ui/menu.js';
 import { loadHighScores, isHighScore, addHighScore, renderHighScores } from './storage/highScores.js';
@@ -409,6 +410,9 @@ function update(dt) {
   // Update COMBO timer (breaks combo if no kills within 2 seconds)
   updateCombo(state, dt);
 
+  // Update screen shake
+  updateScreenShake(dt);
+
   // Deplete energy over time (like original Megamania!)
   const energyDepleted = depleteEnergy(state, dt);
   if (energyDepleted) {
@@ -491,6 +495,15 @@ function update(dt) {
     const enemy = state.enemies[i];
     updateEnemy(enemy, dt, playerPos);
 
+    // ABSURD MODE: Enemy trails! 🌟
+    if (currentTheme === 'absurd' && Math.random() < 0.3) {
+      state.particles.push(createTrailParticle(
+        enemy.x + enemy.width / 2,
+        enemy.y + enemy.height / 2,
+        enemy.color
+      ));
+    }
+
     // Enemy firing
     if (canEnemyFire(enemy)) {
       const bullet = createEnemyBullet(enemy.x, enemy.y + enemy.height / 2, enemy.bulletSpeed);
@@ -515,6 +528,11 @@ function update(dt) {
     const bullet = state.playerBullets[i];
     updateProjectile(bullet, dt);
 
+    // ABSURD MODE: Add bullet trails! ✨
+    if (currentTheme === 'absurd' && Math.random() < 0.5) {
+      state.particles.push(createTrailParticle(bullet.x, bullet.y, bullet.color));
+    }
+
     if (isOffScreen(bullet)) {
       state.playerBullets.splice(i, 1);
       continue;
@@ -534,7 +552,16 @@ function update(dt) {
       if (extraLife) {
         audioManager.playExtraLife();
       }
-      state.particles.push(...createExplosion(hitEnemy.x, hitEnemy.y, hitEnemy.color));
+
+      // ABSURD MODE: Crazy explosions and screen shake! 💥
+      if (currentTheme === 'absurd') {
+        state.particles.push(...createAbsurdExplosion(hitEnemy.x, hitEnemy.y, hitEnemy.color));
+        triggerScreenShake(4, 0.15); // Intense shake!
+      } else {
+        state.particles.push(...createExplosion(hitEnemy.x, hitEnemy.y, hitEnemy.color));
+        triggerScreenShake(2, 0.1); // Mild shake
+      }
+
       audioManager.playEnemyExplode();
 
       // MAYBE DROP A POWER-UP! 💫
@@ -676,6 +703,10 @@ function render() {
   // Draw starfield
   drawStarfield(ctx, stars);
 
+  // Apply screen shake effect
+  ctx.save();
+  applyScreenShake(ctx);
+
   if (state.currentState === GameStates.PLAYING || state.currentState === GameStates.PAUSED) {
     // Draw player with theme image
     if (state.player) {
@@ -723,6 +754,9 @@ function render() {
       drawWaveComplete(ctx, state.waveBonus, state.energyBonus, waveCompleteAlpha);
     }
   }
+
+  // Restore context (remove screen shake)
+  ctx.restore();
 }
 
 // Start the game when page loads
