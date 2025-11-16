@@ -87,7 +87,8 @@ export const gameConfig = {
     sfxVolume: 0.8,
     musicVolume: 0.5,
     sfxEnabled: true,
-    musicEnabled: false
+    musicEnabled: true,  // Changed to true - music ON by default
+    musicFile: 'assets/music/background.wav'  // Background music file
   },
 
   controls: {
@@ -111,20 +112,20 @@ export const gameConfig = {
       fpsPosition: { x: 10, y: 465 },
       showFPS: false,
 
-      // Energy bar (bottom of screen, centered)
+      // Energy bar (top of screen, centered, below HUD text)
       energyBar: {
         x: 170,               // Left edge position
-        y: 460,               // Bottom of screen
+        y: 55,                // Top area, below wave/level text
         width: 300,           // Bar width
-        height: 12,           // Bar height
+        height: 14,           // Bar height
         backgroundColor: '#333333',
         normalColor: '#00ff00',     // Green when energy is good
         warningColor: '#ffff00',    // Yellow when low
         criticalColor: '#ff0000',   // Red when critical
         borderColor: '#ffffff',
         showPercentage: false,      // Don't clutter with numbers
-        showLabel: true,            // Show "ENERGY" label
-        labelOffset: -18            // Label above bar
+        showLabel: false,           // No label needed at top
+        labelOffset: -18            // Label above bar (unused when showLabel=false)
       }
     }
   },
