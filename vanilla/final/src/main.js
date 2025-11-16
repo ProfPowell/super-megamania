@@ -98,9 +98,10 @@ async function init() {
   // Update loading progress
   updateLoadingProgress(100);
 
-  // Hide loading screen
+  // Hide loading screen and show menu
   setTimeout(() => {
     document.getElementById('loading-screen').classList.add('hidden');
+    document.getElementById('menu').classList.remove('hidden');
   }, 500);
 
   // Start the game loop
@@ -322,6 +323,27 @@ function quitToMenu() {
 }
 
 /**
+ * Handle player death - restart wave
+ */
+function handlePlayerDeath() {
+  audioManager.playPlayerDeath();
+
+  // Clear all enemies and bullets
+  state.enemies = [];
+  state.enemyBullets = [];
+  state.playerBullets = [];
+
+  // Refill energy for new life
+  refillEnergy(state);
+
+  // Restart the current wave
+  startWave(state, adjustedConfig);
+  waveAnnouncementTimer = 2;
+  waveAnnouncementAlpha = 1;
+  audioManager.playWaveStart();
+}
+
+/**
  * Handle game over
  */
 function handleGameOver() {
@@ -375,9 +397,9 @@ function update(dt) {
       handleGameOver();
       return;
     }
-    // Refill energy for next life
-    refillEnergy(state);
-    audioManager.playPlayerHit();
+    // Lost a life but game continues - restart wave
+    handlePlayerDeath();
+    return;
   }
 
   // Get input
@@ -430,11 +452,11 @@ function update(dt) {
       recordEnemyFire(enemy);
     }
 
-    // Remove if off-screen (count as escaped, still advances wave)
+    // Remove if off-screen (enemy escaped - breaks perfect wave!)
     if (isEnemyOffScreen(enemy)) {
       state.enemies.splice(i, 1);
+      state.perfectWave = false; // Letting enemies escape breaks perfect wave
       // Count escaped enemies toward wave progression so it doesn't hang
-      // In original Megamania, letting enemies escape was bad but didn't break the game
       if (state.currentWave) {
         // Don't count as kill for score, but allow wave to progress
         state.enemiesKilled++;
@@ -487,11 +509,15 @@ function update(dt) {
       state.enemies = state.enemies.filter(e => e !== hitByEnemy);
       hitPlayer(state.player);
       state.particles.push(...createExplosion(state.player.x + 16, state.player.y + 12, '#00ff00'));
-      audioManager.playPlayerHit();
 
-      if (loseLife(state)) {
+      const gameOver = loseLife(state);
+      if (gameOver) {
         handleGameOver();
+      } else {
+        // Lost a life but game continues - restart wave
+        handlePlayerDeath();
       }
+      return; // Don't process more collisions this frame
     }
 
     // Player vs enemy bullets
@@ -500,11 +526,15 @@ function update(dt) {
       state.enemyBullets = state.enemyBullets.filter(b => b !== hitByBullet);
       hitPlayer(state.player);
       state.particles.push(...createExplosion(state.player.x + 16, state.player.y + 12, '#00ff00'));
-      audioManager.playPlayerHit();
 
-      if (loseLife(state)) {
+      const gameOver = loseLife(state);
+      if (gameOver) {
         handleGameOver();
+      } else {
+        // Lost a life but game continues - restart wave
+        handlePlayerDeath();
       }
+      return; // Don't process more collisions this frame
     }
   }
 

@@ -180,6 +180,18 @@ export function updateEnemy(enemy, dt, playerPos = null) {
     default:
       updateSweepPattern(enemy, dt);
   }
+
+  // Horizontal wrapping - if enemy goes off left/right, wrap to other side
+  const playAreaWidth = 640;
+  const margin = enemy.width;
+
+  if (enemy.x < -margin) {
+    // Went off left, wrap to right
+    enemy.x = playAreaWidth;
+  } else if (enemy.x > playAreaWidth + margin) {
+    // Went off right, wrap to left
+    enemy.x = -margin;
+  }
 }
 
 // Movement pattern implementations

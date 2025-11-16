@@ -146,6 +146,9 @@ export function loseLife(state) {
 export function depleteEnergy(state, dt) {
   if (state.currentState !== GameStates.PLAYING) return false;
 
+  // STOP depleting when wave is complete!
+  if (state.waveComplete) return false;
+
   const { depletionRate, startDelay } = gameConfig.player.energy;
 
   // Increment timer

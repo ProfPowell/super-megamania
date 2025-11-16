@@ -164,6 +164,20 @@ export function createAudioManager() {
     },
 
     /**
+     * Play player death/explosion sound
+     */
+    playPlayerDeath() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+
+      // Dramatic descending explosion
+      playBeep(300, 0.15, 'sawtooth');
+      setTimeout(() => playBeep(200, 0.15, 'sawtooth'), 100);
+      setTimeout(() => playBeep(100, 0.3, 'sawtooth'), 200);
+      setTimeout(() => playBeep(50, 0.4, 'sawtooth'), 350);
+    },
+
+    /**
      * Play wave start sound
      */
     playWaveStart() {
