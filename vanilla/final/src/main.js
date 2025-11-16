@@ -323,12 +323,21 @@ function quitToMenu() {
 }
 
 /**
- * Handle player death - restart wave
+ * Handle player death - restart wave (unless wave was already complete)
  */
 function handlePlayerDeath() {
   audioManager.playPlayerDeath();
 
-  // Clear all enemies and bullets
+  // If wave was already complete, don't restart - let it progress normally
+  if (state.waveComplete) {
+    // Just clear bullets and refill energy
+    state.enemyBullets = [];
+    state.playerBullets = [];
+    refillEnergy(state);
+    return;
+  }
+
+  // Wave not complete - clear everything and restart
   state.enemies = [];
   state.enemyBullets = [];
   state.playerBullets = [];

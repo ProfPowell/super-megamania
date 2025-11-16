@@ -67,8 +67,9 @@ export function updateWaveManager(state, dt, adjustedConfig) {
     }
   }
 
-  // Check wave completion
-  if (state.spawnComplete && state.enemiesKilled >= waveConfig.requiredKills) {
+  // Check wave completion - all enemies must be cleared
+  // This is more robust than just checking kills (handles edge cases)
+  if (state.spawnComplete && state.enemies.length === 0 && state.enemiesKilled > 0) {
     state.waveComplete = true;
   }
 }
