@@ -61,11 +61,13 @@ export function updatePlayer(player, dt, direction) {
 /**
  * Check if player can fire
  * @param {Player} player - Player object
+ * @param {number} fireRateModifier - Optional fire rate modifier (0.5 = 2x faster, 2 = 2x slower)
  * @returns {boolean} True if can fire
  */
-export function canFire(player) {
+export function canFire(player, fireRateModifier = 1) {
   const now = Date.now();
-  return now - player.lastFireTime >= gameConfig.player.bullet.cooldown;
+  const effectiveCooldown = gameConfig.player.bullet.cooldown * fireRateModifier;
+  return now - player.lastFireTime >= effectiveCooldown;
 }
 
 /**

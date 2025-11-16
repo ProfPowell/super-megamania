@@ -72,11 +72,33 @@ export function clearCanvas(ctx) {
  * Draw a simple starfield background
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {Array<{x: number, y: number, size: number, opacity: number}>} stars - Star positions
+ * @param {boolean} psychedelic - Enable rainbow colors and effects
+ * @param {number} time - Game time for animation
  */
-export function drawStarfield(ctx, stars) {
+export function drawStarfield(ctx, stars, psychedelic = false, time = 0) {
   for (const star of stars) {
-    ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+    if (psychedelic) {
+      // Rainbow HSL color cycling based on position and time
+      const hue = (star.hue + time * 50) % 360; // Cycle through hues
+      const saturation = 70 + Math.sin(time * 2 + star.x * 0.01) * 30; // Pulse saturation
+      const lightness = 50 + Math.sin(time * 3 + star.y * 0.01) * 20; // Pulse lightness
+      ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${star.opacity})`;
+
+      // Glow effect for larger stars
+      if (star.size >= 2) {
+        ctx.shadowColor = `hsl(${hue}, 100%, 70%)`;
+        ctx.shadowBlur = 3 + Math.sin(time * 5 + star.x) * 2;
+      }
+    } else {
+      ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+    }
+
     ctx.fillRect(star.x, star.y, star.size, star.size);
+
+    // Reset shadow
+    if (psychedelic && star.size >= 2) {
+      ctx.shadowBlur = 0;
+    }
   }
 }
 
@@ -88,13 +110,16 @@ export function drawStarfield(ctx, stars) {
 export function generateStars(count = 100) {
   const stars = [];
   for (let i = 0; i < count; i++) {
-    const speed = Math.random() < 0.3 ? 20 : (Math.random() < 0.6 ? 40 : 60);
+    const baseSpeed = Math.random() < 0.3 ? 20 : (Math.random() < 0.6 ? 40 : 60);
     stars.push({
       x: Math.random() * gameConfig.canvas.width,
       y: Math.random() * gameConfig.canvas.height,
       size: Math.random() < 0.5 ? 1 : 2,
       opacity: 0.3 + Math.random() * 0.7,
-      speed: speed  // Pixels per second downward
+      speed: baseSpeed,       // Current speed (pixels per second)
+      baseSpeed: baseSpeed,   // Base speed for pulsing
+      hue: Math.random() * 360,  // Initial hue for rainbow effect
+      pulsePhase: Math.random() * Math.PI * 2  // Phase offset for speed pulsing
     });
   }
   return stars;
@@ -104,9 +129,18 @@ export function generateStars(count = 100) {
  * Update starfield positions (creates scrolling effect)
  * @param {Array} stars - Star array
  * @param {number} dt - Delta time in seconds
+ * @param {boolean} psychedelic - Enable speed pulsing
+ * @param {number} time - Game time for pulsing effect
  */
-export function updateStarfield(stars, dt) {
+export function updateStarfield(stars, dt, psychedelic = false, time = 0) {
   for (const star of stars) {
+    // PSYCHEDELIC MODE: Pulsing speed! 🌈
+    if (psychedelic) {
+      // Speed pulses between 0.5x and 1.5x base speed
+      const pulseFactor = 1 + Math.sin(time * 2 + star.pulsePhase) * 0.5;
+      star.speed = star.baseSpeed * pulseFactor;
+    }
+
     star.y += star.speed * dt;
 
     // Wrap around when star goes off bottom

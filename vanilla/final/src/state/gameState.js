@@ -70,6 +70,8 @@ export function createGameState(difficulty = 'normal') {
     playerBullets: [],
     enemyBullets: [],
     particles: [],
+    powerUps: [],             // Power-ups falling down screen
+    activePowerUps: {},       // Currently active power-up effects
 
     // Timing
     gameTime: 0,
@@ -84,7 +86,14 @@ export function createGameState(difficulty = 'normal') {
 
     // Wave spawning
     enemiesSpawned: 0,
-    spawnComplete: false
+    spawnComplete: false,
+
+    // COMBO SYSTEM! 🔥
+    combo: 0,                    // Current combo count
+    maxCombo: 0,                 // Best combo this game
+    comboTimer: 0,               // Time left to continue combo
+    comboMultiplier: 1,          // Current score multiplier from combo
+    lastComboTime: 0             // When last combo hit happened
   };
 }
 
@@ -113,6 +122,8 @@ export function resetGameState(state, difficulty) {
   state.playerBullets = [];
   state.enemyBullets = [];
   state.particles = [];
+  state.powerUps = [];
+  state.activePowerUps = {};
 
   state.gameTime = 0;
   state.waveStartTime = 0;
@@ -132,7 +143,10 @@ export function addScore(state, points) {
   const oldScore = state.score;
   const { scoreMultiplier } = gameConfig.difficulty[state.difficulty];
   const levelMult = Math.pow(gameConfig.difficulty.levelProgression.scoreMultiplier, state.level);
-  state.score += Math.floor(points * scoreMultiplier * levelMult);
+
+  // Apply COMBO MULTIPLIER! 🔥
+  const finalPoints = Math.floor(points * scoreMultiplier * levelMult * state.comboMultiplier);
+  state.score += finalPoints;
 
   // Check if we crossed an extra life threshold (every 20,000 points)
   if (state.score >= state.nextExtraLifeScore && oldScore < state.nextExtraLifeScore) {
@@ -287,4 +301,65 @@ export function nextWave(state, totalWaves = 15) {
   state.spawnComplete = false;
   state.enemies = [];
   state.enemyBullets = [];
+
+  // Reset combo on wave change
+  resetCombo(state);
+}
+
+/**
+ * COMBO SYSTEM FUNCTIONS 🔥
+ */
+
+/**
+ * Increment combo counter (call when enemy is killed)
+ * @param {GameState} state - Game state
+ */
+export function incrementCombo(state) {
+  state.combo++;
+  if (state.combo > state.maxCombo) {
+    state.maxCombo = state.combo;
+  }
+
+  // Reset combo timer (player has 2 seconds to get next kill)
+  state.comboTimer = 2.0;
+  state.lastComboTime = state.gameTime;
+
+  // Calculate multiplier (caps at 4x)
+  // 3-4 combo: 1.5x, 5-9: 2x, 10-19: 3x, 20+: 4x
+  if (state.combo >= 20) {
+    state.comboMultiplier = 4;
+  } else if (state.combo >= 10) {
+    state.comboMultiplier = 3;
+  } else if (state.combo >= 5) {
+    state.comboMultiplier = 2;
+  } else if (state.combo >= 3) {
+    state.comboMultiplier = 1.5;
+  } else {
+    state.comboMultiplier = 1;
+  }
+}
+
+/**
+ * Update combo timer (call every frame)
+ * @param {GameState} state - Game state
+ * @param {number} dt - Delta time
+ */
+export function updateCombo(state, dt) {
+  if (state.combo > 0 && state.comboTimer > 0) {
+    state.comboTimer -= dt;
+
+    if (state.comboTimer <= 0) {
+      resetCombo(state);
+    }
+  }
+}
+
+/**
+ * Reset combo
+ * @param {GameState} state - Game state
+ */
+export function resetCombo(state) {
+  state.combo = 0;
+  state.comboTimer = 0;
+  state.comboMultiplier = 1;
 }

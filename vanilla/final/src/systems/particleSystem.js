@@ -80,7 +80,106 @@ export function drawParticles(ctx, particles) {
   for (const p of particles) {
     ctx.globalAlpha = p.life;
     ctx.fillStyle = p.color;
-    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+
+    // Draw based on particle shape
+    if (p.shape === 'circle') {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.shape === 'star') {
+      // Simple star shape
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation || 0);
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
+        const radius = i % 2 === 0 ? p.size : p.size / 2;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else {
+      // Default square
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
   }
   ctx.globalAlpha = 1.0;
+}
+
+/**
+ * Create ABSURD explosion with crazy particles
+ * @param {number} x - Explosion center X
+ * @param {number} y - Explosion center Y
+ * @param {string} color - Primary particle color
+ * @returns {Particle[]} Array of particles
+ */
+export function createAbsurdExplosion(x, y, color = '#ffff00') {
+  const particles = [];
+  const colors = [color, '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#00ff00'];
+
+  // Main explosion burst
+  for (let i = 0; i < 25; i++) {
+    const angle = (Math.PI * 2 * i) / 25 + (Math.random() - 0.5) * 0.5;
+    const speed = 150 + Math.random() * 200;
+
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1.0,
+      maxLife: 0.6 + Math.random() * 0.6,
+      size: 3 + Math.random() * 4,
+      shape: Math.random() < 0.3 ? 'star' : (Math.random() < 0.5 ? 'circle' : 'square'),
+      rotation: Math.random() * Math.PI * 2
+    });
+  }
+
+  // Secondary sparkles
+  for (let i = 0; i < 15; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 50 + Math.random() * 100;
+
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 50, // Slight upward bias
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1.0,
+      maxLife: 0.8 + Math.random() * 0.4,
+      size: 1 + Math.random() * 2,
+      shape: 'star',
+      rotation: Math.random() * Math.PI * 2
+    });
+  }
+
+  return particles;
+}
+
+/**
+ * Create trail particle
+ * @param {number} x - Position X
+ * @param {number} y - Position Y
+ * @param {string} color - Particle color
+ * @returns {Particle} Trail particle
+ */
+export function createTrailParticle(x, y, color = '#ffffff') {
+  return {
+    x: x + (Math.random() - 0.5) * 4,
+    y: y + (Math.random() - 0.5) * 4,
+    vx: (Math.random() - 0.5) * 20,
+    vy: (Math.random() - 0.5) * 20,
+    color,
+    life: 1.0,
+    maxLife: 0.3 + Math.random() * 0.2,
+    size: 1 + Math.random() * 2,
+    shape: Math.random() < 0.5 ? 'circle' : 'square'
+  };
 }

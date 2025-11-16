@@ -20,15 +20,25 @@ import { gameConfig } from '../config/gameConfig.js';
  * Create player projectile
  * @param {number} x - Starting X position
  * @param {number} y - Starting Y position
+ * @param {number} angle - Optional angle in radians (0 = straight up)
  * @returns {Projectile} Projectile object
  */
-export function createPlayerBullet(x, y) {
+export function createPlayerBullet(x, y, angle = 0) {
+  const speed = gameConfig.player.bullet.speed;
+
+  // Calculate velocity components from angle
+  // angle 0 = straight up, positive angle = tilted right
+  const velocityX = Math.sin(angle) * speed;
+  const velocityY = -Math.cos(angle) * speed; // Negative for upward
+
   return {
     x: x - gameConfig.player.bullet.width / 2,
     y: y - gameConfig.player.bullet.height,
     width: gameConfig.player.bullet.width,
     height: gameConfig.player.bullet.height,
-    speed: -gameConfig.player.bullet.speed, // Negative = upward
+    speed: -speed, // Keep for compatibility (negative = upward)
+    velocityX: velocityX,
+    velocityY: velocityY,
     color: gameConfig.player.bullet.color,
     fromPlayer: true
   };
@@ -59,7 +69,14 @@ export function createEnemyBullet(x, y, speed = 200) {
  * @param {number} dt - Delta time in seconds
  */
 export function updateProjectile(projectile, dt) {
-  projectile.y += projectile.speed * dt;
+  // Use velocity components if available (for angled shots)
+  if (projectile.velocityX !== undefined && projectile.velocityY !== undefined) {
+    projectile.x += projectile.velocityX * dt;
+    projectile.y += projectile.velocityY * dt;
+  } else {
+    // Fallback to simple vertical movement
+    projectile.y += projectile.speed * dt;
+  }
 }
 
 /**
