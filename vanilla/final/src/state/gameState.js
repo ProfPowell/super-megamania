@@ -52,6 +52,7 @@ export function createGameState(difficulty = 'normal') {
     currentState: GameStates.LOADING,
     score: 0,
     lives: gameConfig.player.initialLives,
+    nextExtraLifeScore: 20000,  // Award extra life at this score
     energy: gameConfig.player.energy.maxEnergy,
     maxEnergy: gameConfig.player.energy.maxEnergy,
     level: 0,
@@ -96,6 +97,7 @@ export function resetGameState(state, difficulty) {
   state.currentState = GameStates.PLAYING;
   state.score = 0;
   state.lives = gameConfig.player.initialLives;
+  state.nextExtraLifeScore = 20000;  // Reset extra life threshold
   state.energy = gameConfig.player.energy.maxEnergy;
   state.maxEnergy = gameConfig.player.energy.maxEnergy;
   state.level = 0;
@@ -124,11 +126,22 @@ export function resetGameState(state, difficulty) {
  * Add score with multiplier
  * @param {GameState} state - Game state
  * @param {number} points - Base points to add
+ * @returns {boolean} True if extra life was awarded
  */
 export function addScore(state, points) {
+  const oldScore = state.score;
   const { scoreMultiplier } = gameConfig.difficulty[state.difficulty];
   const levelMult = Math.pow(gameConfig.difficulty.levelProgression.scoreMultiplier, state.level);
   state.score += Math.floor(points * scoreMultiplier * levelMult);
+
+  // Check if we crossed an extra life threshold (every 20,000 points)
+  if (state.score >= state.nextExtraLifeScore && oldScore < state.nextExtraLifeScore) {
+    state.lives++;
+    state.nextExtraLifeScore += 20000;  // Set next threshold
+    return true;  // Extra life awarded!
+  }
+
+  return false;
 }
 
 /**

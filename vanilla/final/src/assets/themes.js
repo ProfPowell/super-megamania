@@ -317,18 +317,37 @@ export const demoTheme = {
 };
 
 /**
- * ABSURD MODE - Embrace the chaos! 🌭🤖☕😱
- * Modern internet/AI culture absurdity
+ * ABSURD MODE - Embrace the chaos! 🌭🤖☕😱💩🍕
+ * Maximum internet/meme culture absurdity with 16 unique enemies!
  */
 export const absurdTheme = {
   name: 'ABSURD MODE',
   player: 'assets/images/absurd/player/hotdog.svg',  // Dancing hot dog!
   enemies: {
-    wave1: 'assets/images/absurd/enemies/angry-ai.svg',       // Angry AI robot
-    wave2: 'assets/images/absurd/enemies/loading.svg',        // Eternal loading spinner
-    wave3: 'assets/images/absurd/enemies/coffee.svg',         // Coffee cup (dev fuel)
-    wave4: 'assets/images/absurd/enemies/error404.svg',       // Error 404 Not Found
-    wave5: 'assets/images/absurd/enemies/screaming-emoji.svg', // Screaming emoji 😱
+    // Wave 1-15: Maximum variety and chaos!
+    wave1: 'assets/images/absurd/enemies/angry-ai.svg',       // 🤖 Angry AI robot
+    wave2: 'assets/images/absurd/enemies/poop.svg',           // 💩 Poop emoji
+    wave3: 'assets/images/absurd/enemies/trollface.svg',      // Troll face meme
+    wave4: 'assets/images/absurd/enemies/wrench.svg',         // 🔧 Angry wrench
+    wave5: 'assets/images/absurd/enemies/toilet.svg',         // 🚽 Toilet seat
+    wave6: 'assets/images/absurd/enemies/loading.svg',        // ⏳ Eternal loading spinner
+    wave7: 'assets/images/absurd/enemies/nyan.svg',           // 🌈 Nyan cat
+    wave8: 'assets/images/absurd/enemies/skull.svg',          // 💀 Skull
+    wave9: 'assets/images/absurd/enemies/pizza.svg',          // 🍕 Pizza slice
+    wave10: 'assets/images/absurd/enemies/mcdonalds.svg',     // 🍟 McDonald's logo
+    wave11: 'assets/images/absurd/enemies/plunger.svg',       // 🪠 Plunger
+    wave12: 'assets/images/absurd/enemies/pumpkin.svg',       // 🎃 Jack O'Lantern
+    wave13: 'assets/images/absurd/enemies/bitcoin.svg',       // ₿ Bitcoin logo
+    wave14: 'assets/images/absurd/enemies/doge.svg',          // 🐕 Doge meme (wow such enemy)
+    wave15: 'assets/images/absurd/enemies/screaming-emoji.svg', // 😱 Screaming emoji
+
+    // Bonus waves (cycle repeats with different enemies)
+    coffee: 'assets/images/absurd/enemies/coffee.svg',         // ☕ Coffee cup
+    error404: 'assets/images/absurd/enemies/error404.svg',     // 🚫 Error 404
+    cowboyhat: 'assets/images/absurd/enemies/cowboyhat.svg',   // 🤠 Cowboy hat
+    chili: 'assets/images/absurd/enemies/chili.svg',           // 🌶️ Chili pepper
+    martini: 'assets/images/absurd/enemies/martini.svg',       // 🍸 Martini glass
+    stonks: 'assets/images/absurd/enemies/stonks.svg',         // 📈 STONKS meme
   }
 };
 

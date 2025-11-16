@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- McDonald's Logo (simplified golden arches) -->
+  <!-- Left arch -->
+  <path d="M 4 28 Q 10 4, 12 28"
+        fill="#ffc72c" stroke="#da9610" stroke-width="1"/>
+
+  <!-- Right arch -->
+  <path d="M 20 28 Q 22 4, 28 28"
+        fill="#ffc72c" stroke="#da9610" stroke-width="1"/>
+
+  <!-- Red background circle -->
+  <circle cx="16" cy="16" r="13" fill="none" stroke="#d62300" stroke-width="2"/>
+
+  <!-- Silly eyes on the arches -->
+  <circle cx="10" cy="18" r="2" fill="white"/>
+  <circle cx="10" cy="18" r="1" fill="black"/>
+
+  <circle cx="22" cy="18" r="2" fill="white"/>
+  <circle cx="22" cy="18" r="1" fill="black"/>
+</svg>
