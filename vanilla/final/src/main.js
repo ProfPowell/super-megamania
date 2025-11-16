@@ -3,7 +3,7 @@
  * Integrates themes, expanded waves, and all improvements
  */
 
-import { initCanvas, clearCanvas, generateStars, drawStarfield } from './canvas.js';
+import { initCanvas, clearCanvas, generateStars, drawStarfield, updateStarfield } from './canvas.js';
 import { createGameLoop } from './gameLoop.js';
 import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy, startEnergyRefill, updateEnergyAnimation } from './state/gameState.js';
 import { getAdjustedConfig } from './config/gameConfig.js';
@@ -402,6 +402,9 @@ function update(dt) {
 
   state.gameTime += dt;
 
+  // Update moving starfield background
+  updateStarfield(stars, dt);
+
   // Deplete energy over time (like original Megamania!)
   const energyDepleted = depleteEnergy(state, dt);
   if (energyDepleted) {
@@ -494,7 +497,10 @@ function update(dt) {
       state.playerBullets.splice(i, 1);
       state.enemies = state.enemies.filter(e => e !== hitEnemy);
       state.enemiesKilled++;
-      addScore(state, hitEnemy.scoreValue);
+      const extraLife = addScore(state, hitEnemy.scoreValue);
+      if (extraLife) {
+        audioManager.playExtraLife();
+      }
       state.particles.push(...createExplosion(hitEnemy.x, hitEnemy.y, hitEnemy.color));
       audioManager.playEnemyExplode();
     }

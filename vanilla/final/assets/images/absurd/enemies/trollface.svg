@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Troll Face Meme -->
+  <!-- Head (flesh color) -->
+  <ellipse cx="16" cy="18" rx="12" ry="14" fill="#f4c2a0" stroke="#000" stroke-width="1"/>
+
+  <!-- Evil eyes -->
+  <ellipse cx="11" cy="14" rx="3" ry="2" fill="#000"/>
+  <ellipse cx="21" cy="14" rx="3" ry="2" fill="#000"/>
+
+  <!-- White dots in eyes -->
+  <circle cx="12" cy="13.5" r="0.8" fill="white"/>
+  <circle cx="22" cy="13.5" r="0.8" fill="white"/>
+
+  <!-- Trollish smile (wide and wavy) -->
+  <path d="M 7 20 Q 10 24, 16 22 T 25 20"
+        fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Teeth -->
+  <rect x="9" y="21" width="2" height="3" fill="white"/>
+  <rect x="12" y="21" width="2" height="3" fill="white"/>
+  <rect x="18" y="21" width="2" height="3" fill="white"/>
+  <rect x="21" y="21" width="2" height="3" fill="white"/>
+
+  <!-- Nose -->
+  <ellipse cx="16" cy="18" rx="2" ry="2.5" fill="#d4a374"/>
+
+  <!-- Eyebrows -->
+  <path d="M 8 11 L 14 12" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 18 12 L 24 11" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

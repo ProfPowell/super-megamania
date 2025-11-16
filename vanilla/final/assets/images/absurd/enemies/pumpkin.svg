@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Jack O'Lantern -->
+  <!-- Pumpkin body -->
+  <ellipse cx="16" cy="16" rx="13" ry="14" fill="#ff8800" stroke="#cc6600" stroke-width="1"/>
+
+  <!-- Vertical ridges -->
+  <path d="M 16 2 Q 14 16, 16 30" fill="none" stroke="#ff6600" stroke-width="1"/>
+  <path d="M 10 4 Q 9 16, 10 28" fill="none" stroke="#ff6600" stroke-width="0.8"/>
+  <path d="M 22 4 Q 23 16, 22 28" fill="none" stroke="#ff6600" stroke-width="0.8"/>
+
+  <!-- Stem -->
+  <rect x="14" y="1" width="4" height="4" rx="1" fill="#228b22" stroke="#145214" stroke-width="0.5"/>
+
+  <!-- Evil triangle eyes -->
+  <path d="M 9 10 L 12 16 L 6 16 Z" fill="#ffff00">
+    <animate attributeName="fill" values="#ffff00;#ff4400;#ffff00" dur="1s" repeatCount="indefinite"/>
+  </path>
+  <path d="M 23 10 L 26 16 L 20 16 Z" fill="#ffff00">
+    <animate attributeName="fill" values="#ffff00;#ff4400;#ffff00" dur="1s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Triangular nose -->
+  <path d="M 16 18 L 14 21 L 18 21 Z" fill="#ffff00"/>
+
+  <!-- Jagged grin -->
+  <path d="M 8 22 L 10 26 L 12 23 L 14 26 L 16 23 L 18 26 L 20 23 L 22 26 L 24 22 Z"
+        fill="#ffff00" stroke="#cc6600" stroke-width="0.5"/>
+</svg>

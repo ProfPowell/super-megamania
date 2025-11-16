@@ -311,6 +311,21 @@ export function createAudioManager() {
     },
 
     /**
+     * Play extra life sound
+     */
+    playExtraLife() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+
+      // Celebratory ascending fanfare
+      playBeep(400, 0.1, 'sine');
+      setTimeout(() => playBeep(500, 0.1, 'sine'), 100);
+      setTimeout(() => playBeep(600, 0.1, 'sine'), 200);
+      setTimeout(() => playBeep(800, 0.2, 'triangle'), 300);
+      setTimeout(() => playBeep(1000, 0.3, 'sine'), 500);
+    },
+
+    /**
      * Play menu navigate sound
      */
     playMenuNavigate() {

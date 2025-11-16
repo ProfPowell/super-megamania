@@ -81,19 +81,38 @@ export function drawStarfield(ctx, stars) {
 }
 
 /**
- * Generate random starfield
+ * Generate random starfield with movement
  * @param {number} count - Number of stars
  * @returns {Array} Star array
  */
 export function generateStars(count = 100) {
   const stars = [];
   for (let i = 0; i < count; i++) {
+    const speed = Math.random() < 0.3 ? 20 : (Math.random() < 0.6 ? 40 : 60);
     stars.push({
       x: Math.random() * gameConfig.canvas.width,
       y: Math.random() * gameConfig.canvas.height,
       size: Math.random() < 0.5 ? 1 : 2,
-      opacity: 0.3 + Math.random() * 0.7
+      opacity: 0.3 + Math.random() * 0.7,
+      speed: speed  // Pixels per second downward
     });
   }
   return stars;
+}
+
+/**
+ * Update starfield positions (creates scrolling effect)
+ * @param {Array} stars - Star array
+ * @param {number} dt - Delta time in seconds
+ */
+export function updateStarfield(stars, dt) {
+  for (const star of stars) {
+    star.y += star.speed * dt;
+
+    // Wrap around when star goes off bottom
+    if (star.y > gameConfig.canvas.height) {
+      star.y = 0;
+      star.x = Math.random() * gameConfig.canvas.width;
+    }
+  }
 }

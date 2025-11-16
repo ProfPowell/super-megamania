@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Cowboy Hat (Yee-haw!) -->
+  <!-- Hat brim -->
+  <ellipse cx="16" cy="20" rx="14" ry="4" fill="#8b4513" stroke="#6d3410" stroke-width="1"/>
+
+  <!-- Crown -->
+  <ellipse cx="16" cy="14" rx="8" ry="7" fill="#a0682a" stroke="#6d3410" stroke-width="1"/>
+
+  <!-- Top indent (cowboy style) -->
+  <ellipse cx="16" cy="10" rx="6" ry="2" fill="#8b4513"/>
+
+  <!-- Hat band -->
+  <ellipse cx="16" cy="16" rx="8" ry="1.5" fill="#d4a374"/>
+
+  <!-- Googly eyes on the hat -->
+  <circle cx="12" cy="14" r="2" fill="white" stroke="black" stroke-width="0.5"/>
+  <circle cx="20" cy="14" r="2" fill="white" stroke="black" stroke-width="0.5"/>
+  <circle cx="11.5" cy="13.5" r="1" fill="black"/>
+  <circle cx="20.5" cy="13.5" r="1" fill="black"/>
+
+  <!-- Mustache -->
+  <path d="M 10 17 Q 13 19, 16 17 Q 19 19, 22 17"
+        fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
