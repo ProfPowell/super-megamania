@@ -404,8 +404,9 @@ function update(dt) {
 
   state.gameTime += dt;
 
-  // Update moving starfield background
-  updateStarfield(stars, dt);
+  // Update moving starfield background (PSYCHEDELIC MODE in ABSURD! 🌈)
+  const isPsychedelic = currentTheme === 'absurd';
+  updateStarfield(stars, dt, isPsychedelic, state.gameTime);
 
   // Update COMBO timer (breaks combo if no kills within 2 seconds)
   updateCombo(state, dt);
@@ -700,8 +701,9 @@ function render() {
   // Clear screen
   clearCanvas(ctx);
 
-  // Draw starfield
-  drawStarfield(ctx, stars);
+  // Draw starfield (PSYCHEDELIC MODE in ABSURD! 🌈)
+  const isPsychedelic = currentTheme === 'absurd';
+  drawStarfield(ctx, stars, isPsychedelic, state.gameTime);
 
   // Apply screen shake effect
   ctx.save();
