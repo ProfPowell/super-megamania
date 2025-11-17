@@ -32,15 +32,15 @@ export const waves = [
     name: 'Horizontal Sweep',
     pattern: 'horizontal',
     enemy: { width: 24, height: 24, color: '#ff0000', hp: 1, scoreValue: 10 },
-    count: 8,
-    spawnInterval: 500,
+    count: 12,            // Increased from 8
+    spawnInterval: 400,   // Faster spawning
     formationDelay: 0,
     speed: 80,
     pathType: 'sweep',
     pathParams: { amplitude: 200, direction: 1, ySpeed: 20 },
     fireRate: 0,
     bulletSpeed: 200,
-    requiredKills: 8,
+    requiredKills: 12,
     themeKey: 'wave1'
   },
 
@@ -50,15 +50,15 @@ export const waves = [
     name: 'Zigzag Formation',
     pattern: 'zigzag',
     enemy: { width: 24, height: 24, color: '#ff8800', hp: 1, scoreValue: 10 },
-    count: 10,
-    spawnInterval: 400,
+    count: 15,            // Increased from 10
+    spawnInterval: 350,
     formationDelay: 1000,
     speed: 100,
     pathType: 'zigzag',
     pathParams: { amplitude: 150, frequency: 0.02, ySpeed: 30 },
     fireRate: 2000,
     bulletSpeed: 200,
-    requiredKills: 10,
+    requiredKills: 15,
     themeKey: 'wave2'
   },
 
@@ -68,15 +68,15 @@ export const waves = [
     name: 'Dive Bombers',
     pattern: 'dive',
     enemy: { width: 24, height: 24, color: '#ffff00', hp: 1, scoreValue: 20 },
-    count: 6,
-    spawnInterval: 800,
+    count: 10,            // Increased from 6
+    spawnInterval: 600,
     formationDelay: 1500,
     speed: 120,
     pathType: 'sine_dive',
     pathParams: { amplitude: 100, frequency: 0.03, diveSpeed: 80 },
     fireRate: 1500,
     bulletSpeed: 200,
-    requiredKills: 6,
+    requiredKills: 10,
     themeKey: 'wave3'
   },
 
@@ -86,15 +86,15 @@ export const waves = [
     name: 'Circle Formation',
     pattern: 'circle',
     enemy: { width: 24, height: 24, color: '#ff00ff', hp: 1, scoreValue: 20 },
-    count: 12,
-    spawnInterval: 300,
+    count: 18,            // Increased from 12
+    spawnInterval: 250,
     formationDelay: 2000,
     speed: 90,
     pathType: 'circular',
     pathParams: { radius: 120, centerX: 320, centerY: 150, angularSpeed: 0.015 },
     fireRate: 2500,
     bulletSpeed: 200,
-    requiredKills: 12,
+    requiredKills: 18,
     themeKey: 'wave4'
   },
 
@@ -104,15 +104,15 @@ export const waves = [
     name: 'Fast Swarm',
     pattern: 'swarm',
     enemy: { width: 16, height: 16, color: '#00ffff', hp: 1, scoreValue: 30 },
-    count: 15,
-    spawnInterval: 250,
+    count: 22,            // Increased from 15
+    spawnInterval: 200,
     formationDelay: 2500,
     speed: 150,
     pathType: 'chaotic',
     pathParams: { changeInterval: 800, amplitude: 180, ySpeed: 40 },
     fireRate: 3000,
     bulletSpeed: 200,
-    requiredKills: 15,
+    requiredKills: 22,
     themeKey: 'wave5'
   },
 

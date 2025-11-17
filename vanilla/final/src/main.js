@@ -15,7 +15,7 @@ import { createEnemy, updateEnemy, canEnemyFire, recordEnemyFire, isEnemyOffScre
 import { maybeCreatePowerUpDrop, updatePowerUp, drawPowerUp, isPowerUpOffScreen, checkPlayerPowerUpCollision, applyPowerUp, updateActivePowerUps, hasPowerUp } from './entities/powerup.js';
 import { checkProjectileEnemyCollision, checkPlayerEnemyCollision, checkPlayerBulletCollision } from './systems/collision.js';
 import { startWave, updateWaveManager } from './systems/waveManager.js';
-import { createExplosion, createAbsurdExplosion, createTrailParticle, updateParticles, drawParticles } from './systems/particleSystem.js';
+import { createExplosion, createAbsurdExplosion, createPlayerExplosion, createTrailParticle, updateParticles, drawParticles } from './systems/particleSystem.js';
 import { triggerScreenShake, updateScreenShake, applyScreenShake, resetScreenShake } from './systems/screenShake.js';
 import { drawHUD, drawWaveAnnouncement, drawWaveComplete, drawEnergyBar, drawActivePowerUps } from './ui/hud.js';
 import { createMenuController } from './ui/menu.js';
@@ -642,7 +642,15 @@ function update(dt) {
     if (hitByEnemy) {
       state.enemies = state.enemies.filter(e => e !== hitByEnemy);
       hitPlayer(state.player);
-      state.particles.push(...createExplosion(state.player.x + 16, state.player.y + 12, '#00ff00'));
+
+      // Spectacular player explosion!
+      const isAbsurd = currentTheme === 'absurd';
+      state.particles.push(...createPlayerExplosion(state.player.x + 16, state.player.y + 12, isAbsurd));
+      if (isAbsurd) {
+        triggerScreenShake(8, 0.3); // MASSIVE shake for player death in ABSURD!
+      } else {
+        triggerScreenShake(5, 0.2);
+      }
 
       const gameOver = loseLife(state);
       if (gameOver) {
@@ -659,7 +667,15 @@ function update(dt) {
     if (hitByBullet) {
       state.enemyBullets = state.enemyBullets.filter(b => b !== hitByBullet);
       hitPlayer(state.player);
-      state.particles.push(...createExplosion(state.player.x + 16, state.player.y + 12, '#00ff00'));
+
+      // Spectacular player explosion!
+      const isAbsurd = currentTheme === 'absurd';
+      state.particles.push(...createPlayerExplosion(state.player.x + 16, state.player.y + 12, isAbsurd));
+      if (isAbsurd) {
+        triggerScreenShake(8, 0.3); // MASSIVE shake for player death in ABSURD!
+      } else {
+        triggerScreenShake(5, 0.2);
+      }
 
       const gameOver = loseLife(state);
       if (gameOver) {
@@ -682,6 +698,11 @@ function update(dt) {
 
     // Start energy refill animation
     startEnergyRefill(state);
+
+    // Play energy bonus sound if we got bonus points
+    if (state.energyBonus > 0) {
+      audioManager.playEnergyBonus();
+    }
   }
 
   // Handle inter-wave pause
@@ -734,9 +755,9 @@ function render() {
   applyScreenShake(ctx);
 
   if (state.currentState === GameStates.PLAYING || state.currentState === GameStates.PAUSED) {
-    // Draw player with theme image
+    // Draw player with theme image (pass state for shield effect)
     if (state.player) {
-      drawPlayer(ctx, state.player, playerImage);
+      drawPlayer(ctx, state.player, playerImage, state);
     }
 
     // Draw enemies with theme images

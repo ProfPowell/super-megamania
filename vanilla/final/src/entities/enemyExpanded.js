@@ -181,16 +181,16 @@ export function updateEnemy(enemy, dt, playerPos = null) {
       updateSweepPattern(enemy, dt);
   }
 
-  // Horizontal wrapping - constrain to play area with minimal overhang
+  // Horizontal wrapping - keep enemies fully within playable area
   const playAreaWidth = 640;
-  const edgeMargin = 10; // Tighter constraint - only 10px past edge
+  const enemyWidth = enemy.width || 24;
 
-  if (enemy.x < -edgeMargin) {
-    // Went off left, wrap to right
-    enemy.x = playAreaWidth - edgeMargin;
-  } else if (enemy.x > playAreaWidth + edgeMargin) {
-    // Went off right, wrap to left
-    enemy.x = edgeMargin;
+  if (enemy.x < 0) {
+    // Went off left, wrap to right side (inside play area)
+    enemy.x = playAreaWidth - enemyWidth;
+  } else if (enemy.x + enemyWidth > playAreaWidth) {
+    // Went off right, wrap to left side (inside play area)
+    enemy.x = 0;
   }
 }
 

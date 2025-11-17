@@ -57,10 +57,10 @@ export const gameConfig = {
 
   difficulty: {
     easy: {
-      playerSpeedMult: 1.2,
-      enemySpeedMult: 0.8,
-      enemyFireRateMult: 0.7,
-      scoreMultiplier: 0.8
+      playerSpeedMult: 1.3,       // 30% faster player
+      enemySpeedMult: 0.7,        // 30% slower enemies
+      enemyFireRateMult: 0.6,     // 40% less firing
+      scoreMultiplier: 0.7        // 30% less score
     },
     normal: {
       playerSpeedMult: 1.0,
@@ -69,10 +69,10 @@ export const gameConfig = {
       scoreMultiplier: 1.0
     },
     hard: {
-      playerSpeedMult: 1.0,
-      enemySpeedMult: 1.3,
-      enemyFireRateMult: 1.5,
-      scoreMultiplier: 1.5
+      playerSpeedMult: 0.9,       // 10% slower player
+      enemySpeedMult: 1.5,        // 50% faster enemies
+      enemyFireRateMult: 2.0,     // 2x more firing
+      scoreMultiplier: 2.0        // 2x score reward
     },
     levelProgression: {
       speedIncrease: 0.15,

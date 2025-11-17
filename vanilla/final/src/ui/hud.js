@@ -238,12 +238,14 @@ export function drawActivePowerUps(ctx, state) {
 
   const startX = 10;
   const startY = 430; // Bottom left
+  const boxWidth = 140; // Wider box for text
+  const boxHeight = 22;
   let yOffset = 0;
 
   // Power-up icons and colors
   const powerUpDisplay = {
     shield: { emoji: '🛡️', color: '#00ffff', name: 'SHIELD' },
-    rapidFire: { emoji: '⚡', color: '#ff6600', name: 'RAPID FIRE' },
+    rapidFire: { emoji: '⚡', color: '#ff6600', name: 'RAPID' },
     spreadShot: { emoji: '💫', color: '#ff00ff', name: 'SPREAD' }
   };
 
@@ -256,31 +258,35 @@ export function drawActivePowerUps(ctx, state) {
     const secondsLeft = Math.ceil(timeLeft / 1000);
 
     // Background box
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(startX, startY + yOffset, 120, 20);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(startX, startY + yOffset, boxWidth, boxHeight);
 
     // Border (pulsing when low time)
     const pulse = secondsLeft <= 3 ? (Math.sin(Date.now() / 200) * 0.5 + 0.5) : 1;
     ctx.strokeStyle = display.color;
     ctx.globalAlpha = pulse;
     ctx.lineWidth = 2;
-    ctx.strokeRect(startX, startY + yOffset, 120, 20);
+    ctx.strokeRect(startX, startY + yOffset, boxWidth, boxHeight);
     ctx.globalAlpha = 1;
 
     // Emoji icon
-    ctx.font = '14px Arial';
-    ctx.fillText(display.emoji, startX + 5, startY + yOffset + 15);
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(display.emoji, startX + 4, startY + yOffset + boxHeight / 2);
 
     // Power-up name
     ctx.font = '8px "Press Start 2P", monospace';
     ctx.fillStyle = display.color;
-    ctx.fillText(display.name, startX + 25, startY + yOffset + 13);
+    ctx.textAlign = 'left';
+    ctx.fillText(display.name, startX + 26, startY + yOffset + boxHeight / 2 - 2);
 
-    // Time remaining
+    // Time remaining (right-aligned in box)
     ctx.fillStyle = secondsLeft <= 3 ? '#ff0000' : '#ffffff';
-    ctx.fillText(`${secondsLeft}s`, startX + 95, startY + yOffset + 13);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${secondsLeft}s`, startX + boxWidth - 4, startY + yOffset + boxHeight / 2 - 2);
 
-    yOffset += 25;
+    yOffset += boxHeight + 3;
   }
 
   ctx.restore();

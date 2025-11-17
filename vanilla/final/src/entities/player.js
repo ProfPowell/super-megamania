@@ -112,8 +112,68 @@ export function getPlayerHitbox(player) {
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {Player} player - Player object
  * @param {HTMLImageElement|null} image - Player sprite image (or null for fallback)
+ * @param {Object} state - Game state (for shield power-up check)
  */
-export function drawPlayer(ctx, player, image = null) {
+export function drawPlayer(ctx, player, image = null, state = null) {
+  // Draw shield if active
+  const hasShield = state && state.activePowerUps && state.activePowerUps.shield;
+  if (hasShield) {
+    const now = Date.now();
+    const pulse = Math.sin(now / 100) * 0.3 + 0.7; // Pulsing effect
+    const radius = 20;
+
+    ctx.save();
+    ctx.globalAlpha = pulse * 0.6;
+
+    // Outer glow
+    const gradient = ctx.createRadialGradient(
+      player.x + player.width / 2,
+      player.y + player.height / 2,
+      radius * 0.5,
+      player.x + player.width / 2,
+      player.y + player.height / 2,
+      radius
+    );
+    gradient.addColorStop(0, 'rgba(0, 255, 255, 0.4)');
+    gradient.addColorStop(0.7, 'rgba(0, 255, 255, 0.2)');
+    gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(
+      player.x + player.width / 2,
+      player.y + player.height / 2,
+      radius,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    // Shield hexagon
+    ctx.globalAlpha = pulse * 0.8;
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.lineDashOffset = -now / 50; // Rotating dash pattern
+
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      const x = player.x + player.width / 2 + Math.cos(angle) * radius;
+      const y = player.y + player.height / 2 + Math.sin(angle) * radius;
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
   // Flash when invincible
   if (player.isInvincible) {
     const flashInterval = 100;
