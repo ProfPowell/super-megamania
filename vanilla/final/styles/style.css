@@ -537,3 +537,145 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ========================================
+   CRT MODE EFFECTS
+   ======================================== */
+
+/* CRT Scanlines Overlay */
+.crt-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.crt-overlay.hidden {
+  display: none;
+}
+
+/* Scanlines effect */
+.crt-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  animation: scanlineMove 8s linear infinite;
+}
+
+@keyframes scanlineMove {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+/* Flickering effect */
+.crt-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(18, 16, 16, 0.1);
+  opacity: 0;
+  pointer-events: none;
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.1; }
+  50% { opacity: 0.08; }
+  100% { opacity: 0.12; }
+}
+
+/* CRT Mode - Applied to game container */
+#game-container.crt-mode {
+  background: #000;
+}
+
+/* CRT Mode - Canvas styling */
+#game-container.crt-mode #gameCanvas {
+  /* Larger scale - 1.5x size */
+  transform: scale(1.5);
+  transform-origin: center;
+
+  /* Enhanced CRT glow */
+  box-shadow:
+    0 0 50px rgba(0, 255, 100, 0.4),
+    0 0 100px rgba(0, 255, 100, 0.2),
+    inset 0 0 100px rgba(0, 255, 100, 0.1);
+
+  /* CRT border effect */
+  border: 4px solid #1a1a1a;
+  border-radius: 8px;
+
+  /* Screen curvature effect */
+  filter:
+    contrast(1.1)
+    brightness(1.05);
+}
+
+/* Vignette effect for CRT mode */
+#game-container.crt-mode::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 40;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* Subtle screen curvature using CSS transform */
+#game-container.crt-mode::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 102%;
+  height: 102%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 45;
+  border-radius: 5%;
+  box-shadow:
+    inset 0 0 100px rgba(0, 0, 0, 0.5),
+    inset 0 0 200px rgba(0, 0, 0, 0.3);
+}
+
+/* Show scanlines when CRT mode is active */
+#game-container.crt-mode .crt-overlay {
+  opacity: 1;
+}
+
+/* Phosphor glow animation */
+@keyframes phosphorGlow {
+  0%, 100% { filter: brightness(1.05) contrast(1.1); }
+  50% { filter: brightness(1.08) contrast(1.15); }
+}
+
+#game-container.crt-mode #gameCanvas {
+  animation: phosphorGlow 0.1s ease-in-out infinite;
+}
