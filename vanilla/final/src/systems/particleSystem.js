@@ -183,3 +183,78 @@ export function createTrailParticle(x, y, color = '#ffffff') {
     shape: Math.random() < 0.5 ? 'circle' : 'square'
   };
 }
+
+/**
+ * Create spectacular player death explosion
+ * @param {number} x - Explosion center X
+ * @param {number} y - Explosion center Y
+ * @param {boolean} absurdMode - Use extra effects for ABSURD MODE
+ * @returns {Particle[]} Array of particles
+ */
+export function createPlayerExplosion(x, y, absurdMode = false) {
+  const particles = [];
+  const count = absurdMode ? 60 : 35;
+  const colors = absurdMode
+    ? ['#ff0000', '#ff6600', '#ffff00', '#00ff00', '#00ffff', '#ff00ff', '#ffffff']
+    : ['#ff4400', '#ff8800', '#ffaa00', '#ffcc00', '#ffffff'];
+
+  // Main explosion burst
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+    const speed = absurdMode ? 250 + Math.random() * 250 : 180 + Math.random() * 150;
+
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1.0,
+      maxLife: absurdMode ? 1.0 + Math.random() * 0.5 : 0.8 + Math.random() * 0.4,
+      size: absurdMode ? 4 + Math.random() * 5 : 3 + Math.random() * 3,
+      shape: absurdMode ? (Math.random() < 0.3 ? 'star' : (Math.random() < 0.6 ? 'circle' : 'square')) : 'circle',
+      rotation: Math.random() * Math.PI * 2
+    });
+  }
+
+  // Secondary ring (outer explosion)
+  const ringCount = absurdMode ? 30 : 20;
+  for (let i = 0; i < ringCount; i++) {
+    const angle = (Math.PI * 2 * i) / ringCount;
+    const speed = absurdMode ? 120 + Math.random() * 100 : 80 + Math.random() * 60;
+
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1.0,
+      maxLife: 1.2 + Math.random() * 0.5,
+      size: absurdMode ? 2 + Math.random() * 3 : 2 + Math.random() * 2,
+      shape: absurdMode ? 'star' : 'circle',
+      rotation: Math.random() * Math.PI * 2
+    });
+  }
+
+  // Core flash (bright center)
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 * i) / 8;
+    const speed = 50 + Math.random() * 30;
+
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color: '#ffffff',
+      life: 1.0,
+      maxLife: 0.4 + Math.random() * 0.2,
+      size: absurdMode ? 6 + Math.random() * 4 : 4 + Math.random() * 3,
+      shape: 'star',
+      rotation: Math.random() * Math.PI * 2
+    });
+  }
+
+  return particles;
+}

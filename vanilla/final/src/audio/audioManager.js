@@ -347,6 +347,32 @@ export function createAudioManager() {
     },
 
     /**
+     * Play energy drain sound (subtle tick)
+     */
+    playEnergyDrain() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+
+      // Subtle descending tick
+      playBeep(300, 0.02, 'square');
+      setTimeout(() => playBeep(250, 0.02, 'square'), 30);
+    },
+
+    /**
+     * Play energy conversion sound (scoring bonus)
+     */
+    playEnergyBonus() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+
+      // Rising chime for bonus points
+      playBeep(500, 0.08, 'sine');
+      setTimeout(() => playBeep(700, 0.08, 'triangle'), 60);
+      setTimeout(() => playBeep(900, 0.08, 'sine'), 120);
+      setTimeout(() => playBeep(1100, 0.1, 'triangle'), 180);
+    },
+
+    /**
      * Play menu navigate sound
      */
     playMenuNavigate() {
