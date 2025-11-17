@@ -6,13 +6,29 @@
 import { getWaveByIndex } from '../config/wavesExpanded.js';
 import { createEnemy } from '../entities/enemyExpanded.js';
 
+// All ABSURD MODE enemy keys for randomization
+const ABSURD_ENEMIES = [
+  'wave1', 'wave2', 'wave3', 'wave4', 'wave5', 'wave6', 'wave7', 'wave8',
+  'wave9', 'wave10', 'wave11', 'wave12', 'wave13', 'wave14', 'wave15',
+  'toilet', 'loading', 'skull', 'mcdonalds', 'plunger', 'pumpkin',
+  'bitcoin', 'doge', 'coffee', 'error404', 'cowboyhat', 'chili', 'martini', 'stonks'
+];
+
 /**
  * Start a new wave
  * @param {Object} state - Game state
  * @param {Object} adjustedConfig - Difficulty-adjusted configuration
+ * @param {string} themeName - Current theme name for enemy randomization
  */
-export function startWave(state, adjustedConfig) {
+export function startWave(state, adjustedConfig, themeName = '') {
   const waveConfig = getWaveByIndex(state.currentWaveIndex);
+
+  // ABSURD MODE: Randomize enemy for this wave! 🎲
+  if (themeName === 'absurd') {
+    const randomEnemy = ABSURD_ENEMIES[Math.floor(Math.random() * ABSURD_ENEMIES.length)];
+    waveConfig.themeKey = randomEnemy;
+    console.log(`🌭 ABSURD WAVE ${state.currentWaveIndex + 1}: ${randomEnemy}`);
+  }
 
   state.waveStartTime = state.gameTime;
   state.lastEnemySpawnTime = state.gameTime - 999; // Allow immediate spawn

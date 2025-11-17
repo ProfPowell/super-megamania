@@ -3,7 +3,8 @@
  * Integrates themes, expanded waves, and all improvements
  */
 
-import { initCanvas, clearCanvas, generateStars, drawStarfield, updateStarfield } from './canvas.js';
+import { initCanvas, clearCanvas } from './canvas.js';
+import { generateBackground, updateBackground, drawBackground, BackgroundMode } from './systems/backgroundSystem.js';
 import { createGameLoop } from './gameLoop.js';
 import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy, startEnergyRefill, updateEnergyAnimation, incrementCombo, updateCombo, resetCombo } from './state/gameState.js';
 import { getAdjustedConfig } from './config/gameConfig.js';
@@ -32,7 +33,8 @@ let gameLoop;
 let inputManager;
 let menuController;
 let audioManager;
-let stars;
+let backgroundElements;
+let backgroundMode = BackgroundMode.CLASSIC;
 let ctx;
 
 // Adjusted config based on difficulty
@@ -64,8 +66,8 @@ async function init() {
   const { canvas, ctx: context } = initCanvas('gameCanvas');
   ctx = context;
 
-  // Generate starfield
-  stars = generateStars(100);
+  // Generate initial background
+  backgroundElements = generateBackground(backgroundMode, 100);
 
   // Load settings
   const settings = loadSettings();
@@ -139,6 +141,27 @@ async function loadTheme(themeName) {
   if (audioManager) {
     audioManager.setTheme(themeName);
   }
+
+  // Set background mode based on theme
+  if (themeName === 'absurd') {
+    // ABSURD MODE: Random crazy background! 🌈
+    const crazyBackgrounds = [
+      BackgroundMode.PSYCHEDELIC,
+      BackgroundMode.MATRIX,
+      BackgroundMode.NEBULA,
+      BackgroundMode.VAPORWAVE,
+      BackgroundMode.GLITCH,
+      BackgroundMode.COSMOS
+    ];
+    backgroundMode = crazyBackgrounds[Math.floor(Math.random() * crazyBackgrounds.length)];
+    console.log(`🌭 ABSURD BACKGROUND MODE: ${backgroundMode}`);
+  } else {
+    // Normal themes: classic starfield
+    backgroundMode = BackgroundMode.CLASSIC;
+  }
+
+  // Regenerate background with new mode
+  backgroundElements = generateBackground(backgroundMode, 100);
 
   console.log(`Theme loaded: ${currentTheme.name} (${Object.keys(themeImages).length} enemy sprites)`);
 }
@@ -291,7 +314,8 @@ function startGame() {
   state.player = createPlayer(adjustedConfig);
 
   // Start first wave
-  startWave(state, adjustedConfig);
+  const themeName = currentTheme?.name.toLowerCase().includes('absurd') ? 'absurd' : '';
+  startWave(state, adjustedConfig, themeName);
   waveAnnouncementTimer = 2;
   waveAnnouncementAlpha = 1;
 
@@ -353,7 +377,8 @@ function handlePlayerDeath() {
   refillEnergy(state);
 
   // Restart the current wave
-  startWave(state, adjustedConfig);
+  const themeName = currentTheme?.name.toLowerCase().includes('absurd') ? 'absurd' : '';
+  startWave(state, adjustedConfig, themeName);
   waveAnnouncementTimer = 2;
   waveAnnouncementAlpha = 1;
   audioManager.playWaveStart();
@@ -404,9 +429,8 @@ function update(dt) {
 
   state.gameTime += dt;
 
-  // Update moving starfield background (PSYCHEDELIC MODE in ABSURD! 🌈)
-  const isPsychedelic = currentTheme === 'absurd';
-  updateStarfield(stars, dt, isPsychedelic, state.gameTime);
+  // Update background animation
+  updateBackground(backgroundElements, dt, state.gameTime);
 
   // Update COMBO timer (breaks combo if no kills within 2 seconds)
   updateCombo(state, dt);
@@ -675,7 +699,8 @@ function update(dt) {
       interWavePause = false;
       nextWave(state);
       adjustedConfig = getAdjustedConfig(state.difficulty, state.level);
-      startWave(state, adjustedConfig);
+      const themeName = currentTheme?.name.toLowerCase().includes('absurd') ? 'absurd' : '';
+      startWave(state, adjustedConfig, themeName);
       waveAnnouncementTimer = 2;
       waveAnnouncementAlpha = 1;
       audioManager.playWaveStart();
@@ -701,9 +726,8 @@ function render() {
   // Clear screen
   clearCanvas(ctx);
 
-  // Draw starfield (PSYCHEDELIC MODE in ABSURD! 🌈)
-  const isPsychedelic = currentTheme === 'absurd';
-  drawStarfield(ctx, stars, isPsychedelic, state.gameTime);
+  // Draw background
+  drawBackground(ctx, backgroundElements, state.gameTime);
 
   // Apply screen shake effect
   ctx.save();
