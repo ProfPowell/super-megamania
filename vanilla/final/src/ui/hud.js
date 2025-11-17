@@ -237,7 +237,7 @@ export function drawActivePowerUps(ctx, state) {
   ctx.save();
 
   const startX = 10;
-  const startY = 430; // Bottom left
+  const startY = 395; // Bottom left - adjusted to fit all 3 power-ups
   const boxWidth = 140; // Wider box for text
   const boxHeight = 22;
   let yOffset = 0;
