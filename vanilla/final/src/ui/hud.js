@@ -54,8 +54,8 @@ export function drawHUD(ctx, state, fps) {
     ctx.fillText(`FPS: ${fps}`, hud.fpsPosition.x, hud.fpsPosition.y);
   }
 
-  // COMBO DISPLAY! 🔥
-  if (state.combo > 0) {
+  // COMBO DISPLAY! 🔥 (only show if multiplier > 1)
+  if (state.combo >= 3 && state.comboMultiplier > 1) {
     const centerX = 320;
     const centerY = 280;  // Below center
 

@@ -6,7 +6,7 @@
 import { initCanvas, clearCanvas } from './canvas.js';
 import { generateBackground, updateBackground, drawBackground, BackgroundMode } from './systems/backgroundSystem.js';
 import { createGameLoop } from './gameLoop.js';
-import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy, startEnergyRefill, updateEnergyAnimation, incrementCombo, updateCombo, resetCombo } from './state/gameState.js';
+import { createGameState, resetGameState, GameStates, addScore, loseLife, nextWave, depleteEnergy, refillEnergy, startEnergyRefill, updateEnergyAnimation, incrementCombo, updateCombo, resetCombo, shouldTriggerBonusStage, startBonusStage, updateBonusStage, bonusStageEnemyEscaped, endBonusStage } from './state/gameState.js';
 import { getAdjustedConfig } from './config/gameConfig.js';
 import { createInputManager } from './input/inputManager.js';
 import { createPlayer, updatePlayer, canFire, recordFire, hitPlayer, getPlayerHitbox, drawPlayer } from './entities/player.js';
@@ -47,6 +47,17 @@ let waveCompleteAlpha = 0;
 let waveCompleteTimer = 0;
 let interWavePause = false;
 let interWavePauseTimer = 0;
+
+// Menu animations
+let menuFallingEnemies = [];
+let menuEnemySpawnTimer = 0;
+
+// Bonus stage tracking
+let bonusStageAnnouncementTimer = 0;
+let bonusStageAnnouncementAlpha = 0;
+let bonusStageEndTimer = 0;
+let bonusStageEndAlpha = 0;
+let bonusStagePerfect = false;
 
 // Pause tracking
 let pausePressed = false;
@@ -253,6 +264,70 @@ function setupEventListeners() {
   document.getElementById('sfx-toggle').addEventListener('click', toggleSfx);
   document.getElementById('music-toggle').addEventListener('click', toggleMusic);
   document.getElementById('volume-slider').addEventListener('input', updateVolume);
+
+  // Keyboard navigation for menus
+  let lastKeyTime = 0;
+  const KEY_REPEAT_DELAY = 150; // ms between key repeats
+
+  window.addEventListener('keydown', (e) => {
+    // Don't handle keys when typing in input fields (except ENTER for submission)
+    const target = e.target;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+      // Allow ENTER to submit name entry
+      if (e.code === 'Enter' && menuController.getCurrentScreen() === 'nameEntry') {
+        // ENTER key handling is in the name entry screen handler
+        return;
+      }
+      // Ignore other keys when typing
+      return;
+    }
+
+    // Only handle menu navigation when not playing
+    if (state.currentState === GameStates.PLAYING) {
+      return;
+    }
+
+    const now = Date.now();
+    const currentScreen = menuController.getCurrentScreen();
+
+    // Arrow key navigation (with repeat delay)
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+      if (now - lastKeyTime > KEY_REPEAT_DELAY) {
+        e.preventDefault();
+        audioManager.playMenuMove();
+        menuController.navigate(-1);
+        lastKeyTime = now;
+      }
+    } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      if (now - lastKeyTime > KEY_REPEAT_DELAY) {
+        e.preventDefault();
+        audioManager.playMenuMove();
+        menuController.navigate(1);
+        lastKeyTime = now;
+      }
+    }
+    // SPACE or ENTER to select
+    else if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      audioManager.playMenuSelect();
+      menuController.select();
+    }
+    // ESC to go back
+    else if (e.code === 'Escape') {
+      e.preventDefault();
+
+      // Handle ESC based on current screen
+      if (currentScreen === 'pause') {
+        resumeGame();
+      } else if (currentScreen === 'high-scores' || currentScreen === 'settings' || currentScreen === 'help') {
+        audioManager.playMenuSelect();
+        menuController.showScreen('menu');
+      } else if (currentScreen === 'gameOver') {
+        audioManager.playMenuSelect();
+        quitToMenu();
+      }
+    }
+  });
 }
 
 /**
@@ -305,6 +380,10 @@ function updateVolume(e) {
  */
 function startGame() {
   menuController.hideAllScreens();
+
+  // Clear menu animations
+  menuFallingEnemies = [];
+  menuEnemySpawnTimer = 0;
 
   const settings = loadSettings();
   resetGameState(state, settings.difficulty);
@@ -385,6 +464,88 @@ function handlePlayerDeath() {
 }
 
 /**
+ * Start bonus wave with mixed enemy types
+ * @param {GameState} state - Game state
+ * @param {Object} config - Adjusted game config
+ */
+function startBonusWave(state, config) {
+  state.currentWave = {
+    name: `BONUS STAGE - LEVEL ${state.level + 1}`,
+    totalEnemies: 30, // Lots of enemies!
+    spawnInterval: 200, // Fast spawning
+    themeKey: 'mixed' // Special flag for mixed enemies
+  };
+
+  // Get all available enemy keys for mixing
+  const enemyKeys = Object.keys(themeImages);
+  if (enemyKeys.length === 0) {
+    enemyKeys.push('wave1'); // Fallback
+  }
+
+  // Start spawning mixed enemies
+  state.waveStartTime = state.gameTime;
+  state.lastEnemySpawnTime = state.gameTime;
+  state.enemiesSpawned = 0;
+  state.spawnComplete = false;
+  state.perfectWave = true;
+
+  // Immediately spawn first batch of enemies
+  for (let i = 0; i < 5; i++) {
+    if (state.enemiesSpawned < state.currentWave.totalEnemies) {
+      // Random enemy type for each spawn
+      const randomKey = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
+
+      const enemy = createEnemy(
+        Math.random() * (config.canvas.width - 32),
+        -30 - i * 40,
+        randomKey,
+        config
+      );
+      enemy.themeKey = randomKey; // Ensure theme key is set
+      state.enemies.push(enemy);
+      state.enemiesSpawned++;
+    }
+  }
+}
+
+/**
+ * Update bonus wave spawning (mixed enemies)
+ * @param {GameState} state - Game state
+ * @param {number} dt - Delta time
+ * @param {Object} config - Adjusted game config
+ */
+function updateBonusWaveSpawning(state, dt, config) {
+  if (!state.currentWave || state.spawnComplete) return;
+
+  const timeSinceLastSpawn = (state.gameTime - state.lastEnemySpawnTime) * 1000;
+
+  if (timeSinceLastSpawn >= state.currentWave.spawnInterval && state.enemiesSpawned < state.currentWave.totalEnemies) {
+    // Get all available enemy keys
+    const enemyKeys = Object.keys(themeImages);
+    if (enemyKeys.length === 0) return;
+
+    // Random enemy type
+    const randomKey = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
+
+    const enemy = createEnemy(
+      Math.random() * (config.canvas.width - 32),
+      -30,
+      randomKey,
+      config
+    );
+    enemy.themeKey = randomKey;
+    state.enemies.push(enemy);
+    state.enemiesSpawned++;
+    state.lastEnemySpawnTime = state.gameTime;
+  }
+
+  // Mark spawn as complete
+  if (state.enemiesSpawned >= state.currentWave.totalEnemies) {
+    state.spawnComplete = true;
+  }
+}
+
+/**
  * Handle game over
  */
 function handleGameOver() {
@@ -393,31 +554,257 @@ function handleGameOver() {
   audioManager.stopMusic();  // Stop background music
   audioManager.playGameOver();
 
-  // Show game over screen
-  document.getElementById('final-score').textContent = `SCORE: ${state.score}`;
-
   // Check for high score
   if (isHighScore(state.score)) {
-    document.getElementById('new-high-score').classList.remove('hidden');
-    document.getElementById('name-entry').classList.remove('hidden');
+    // NEW FLOW: Show name entry screen first
+    showNameEntryScreen();
+  } else {
+    // No high score: go directly to game over menu
+    showGameOverMenu();
+  }
+}
 
-    const nameInput = document.getElementById('player-name');
-    nameInput.value = loadPlayerName();
+/**
+ * Show name entry screen for high score
+ */
+function showNameEntryScreen() {
+  // Show name entry screen
+  document.getElementById('name-entry-score').textContent = `SCORE: ${state.score}`;
+
+  const nameInput = document.getElementById('player-name');
+  nameInput.value = loadPlayerName();
+
+  menuController.showScreen('nameEntry');
+
+  // Focus and select after a tiny delay to ensure screen is visible
+  setTimeout(() => {
     nameInput.focus();
     nameInput.select();
+  }, 100);
 
-    // Save high score when name changes
-    nameInput.addEventListener('change', () => {
-      const name = nameInput.value.toUpperCase().substring(0, 3);
+  // Handle ENTER key to submit name
+  const handleNameSubmit = (e) => {
+    if (e.key === 'Enter' || e.type === 'change') {
+      e.preventDefault();
+
+      const name = nameInput.value.toUpperCase().substring(0, 3).padEnd(3, 'A');
       savePlayerName(name);
-      addHighScore(name, state.score, state.level);
-    }, { once: true });
+
+      // Add high score to localStorage
+      const rank = addHighScore(name, state.score, state.level);
+
+      // Remove event listeners
+      nameInput.removeEventListener('keydown', handleNameSubmit);
+      nameInput.removeEventListener('change', handleNameSubmit);
+
+      // Show high scores screen
+      showHighScoresAfterEntry();
+    }
+  };
+
+  nameInput.addEventListener('keydown', handleNameSubmit);
+  nameInput.addEventListener('change', handleNameSubmit);
+}
+
+/**
+ * Show high scores screen after name entry
+ */
+function showHighScoresAfterEntry() {
+  menuController.showScreen('high-scores');
+  renderHighScores('high-scores-list');
+
+  // Replace the "BACK" button functionality temporarily
+  const backButton = document.getElementById('btn-back-scores');
+  const handleContinue = () => {
+    backButton.removeEventListener('click', handleContinue);
+    showGameOverMenu();
+  };
+
+  backButton.addEventListener('click', handleContinue, { once: true });
+}
+
+/**
+ * Show game over menu (final screen)
+ */
+function showGameOverMenu() {
+  document.getElementById('final-score').textContent = `SCORE: ${state.score}`;
+  menuController.showScreen('gameOver');
+}
+
+/**
+ * Draw bonus stage announcement
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} level - Current level
+ * @param {number} alpha - Opacity
+ */
+function drawBonusStageAnnouncement(ctx, level, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  ctx.fillStyle = '#ffff00';
+  ctx.font = "24px 'Press Start 2P', monospace";
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+  ctx.fillRect(100, 160, 440, 100);
+
+  // Border
+  ctx.strokeStyle = '#ff00ff';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(100, 160, 440, 100);
+
+  // Text
+  ctx.fillStyle = '#ff00ff';
+  ctx.fillText('BONUS STAGE!', 320, 190);
+  ctx.font = "16px 'Press Start 2P', monospace";
+  ctx.fillText(`LEVEL ${level}`, 320, 225);
+
+  ctx.restore();
+}
+
+/**
+ * Draw bonus stage timer
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} timeLeft - Time remaining in seconds
+ */
+function drawBonusStageTimer(ctx, timeLeft) {
+  ctx.save();
+
+  const seconds = Math.ceil(timeLeft);
+  const isLowTime = seconds <= 10;
+
+  ctx.font = "20px 'Press Start 2P', monospace";
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  // Pulse when low on time
+  if (isLowTime) {
+    const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#ff0000';
   } else {
-    document.getElementById('new-high-score').classList.add('hidden');
-    document.getElementById('name-entry').classList.add('hidden');
+    ctx.fillStyle = '#ffff00';
   }
 
-  menuController.showScreen('gameOver');
+  ctx.fillText(`TIME: ${seconds}s`, 320, 10);
+
+  ctx.restore();
+}
+
+/**
+ * Draw bonus stage end message
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {boolean} perfect - Got perfect bonus
+ * @param {number} escaped - Number of enemies escaped
+ * @param {number} alpha - Opacity
+ */
+function drawBonusStageEnd(ctx, perfect, escaped, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  ctx.font = "20px 'Press Start 2P', monospace";
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+  ctx.fillRect(100, 160, 440, 120);
+
+  // Border
+  const borderColor = perfect ? '#00ff00' : '#ffff00';
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(100, 160, 440, 120);
+
+  // Title
+  ctx.fillStyle = borderColor;
+  ctx.fillText('BONUS STAGE COMPLETE!', 320, 195);
+
+  // Result
+  if (perfect) {
+    ctx.font = "24px 'Press Start 2P', monospace";
+    ctx.fillStyle = '#00ff00';
+    ctx.fillText('PERFECT! +1000', 320, 240);
+  } else {
+    ctx.font = "14px 'Press Start 2P', monospace";
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`${escaped} ENEMIES ESCAPED`, 320, 240);
+  }
+
+  ctx.restore();
+}
+
+/**
+ * Update menu falling enemies
+ * @param {number} dt - Delta time in seconds
+ */
+function updateMenuEnemies(dt) {
+  const SPAWN_INTERVAL = 0.4; // Spawn enemy every 0.4 seconds
+  const FALL_SPEED = 80; // Pixels per second
+
+  menuEnemySpawnTimer += dt;
+
+  // Spawn new enemies
+  if (menuEnemySpawnTimer >= SPAWN_INTERVAL) {
+    menuEnemySpawnTimer = 0;
+
+    // Get random enemy sprite from current theme
+    const enemyKeys = Object.keys(themeImages);
+    if (enemyKeys.length > 0) {
+      const randomKey = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
+
+      menuFallingEnemies.push({
+        x: Math.random() * 620, // Random X position (with margin)
+        y: -30, // Start above screen
+        themeKey: randomKey,
+        speed: FALL_SPEED + Math.random() * 40, // Varied speed
+        rotation: Math.random() * Math.PI * 2, // Random rotation
+        rotationSpeed: (Math.random() - 0.5) * 3, // Rotation speed
+        scale: 0.8 + Math.random() * 0.4 // Varied size
+      });
+    }
+  }
+
+  // Update positions
+  for (let i = menuFallingEnemies.length - 1; i >= 0; i--) {
+    const enemy = menuFallingEnemies[i];
+    enemy.y += enemy.speed * dt;
+    enemy.rotation += enemy.rotationSpeed * dt;
+
+    // Remove if off screen
+    if (enemy.y > 480 + 30) {
+      menuFallingEnemies.splice(i, 1);
+    }
+  }
+}
+
+/**
+ * Draw menu falling enemies
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ */
+function drawMenuEnemies(ctx) {
+  ctx.save();
+  ctx.globalAlpha = 0.6; // Semi-transparent
+
+  for (const enemy of menuFallingEnemies) {
+    const image = themeImages[enemy.themeKey];
+    if (image && image.complete) {
+      ctx.save();
+      ctx.translate(enemy.x, enemy.y);
+      ctx.rotate(enemy.rotation);
+      ctx.scale(enemy.scale, enemy.scale);
+
+      const width = 32;
+      const height = 32;
+      ctx.drawImage(image, -width / 2, -height / 2, width, height);
+
+      ctx.restore();
+    }
+  }
+
+  ctx.restore();
 }
 
 /**
@@ -425,6 +812,12 @@ function handleGameOver() {
  * @param {number} dt - Delta time in seconds
  */
 function update(dt) {
+  // Update menu falling enemies (when in MENU state)
+  if (state.currentState === GameStates.MENU) {
+    updateMenuEnemies(dt);
+    return;
+  }
+
   if (state.currentState !== GameStates.PLAYING) return;
 
   state.gameTime += dt;
@@ -434,6 +827,26 @@ function update(dt) {
 
   // Update COMBO timer (breaks combo if no kills within 2 seconds)
   updateCombo(state, dt);
+
+  // Update BONUS STAGE timer 🎯
+  if (state.bonusStageActive) {
+    const bonusEnded = updateBonusStage(state, dt);
+    if (bonusEnded) {
+      // Bonus stage time's up!
+      bonusStagePerfect = state.bonusStageEnemiesEscaped === 0;
+      bonusStageEndTimer = 3;
+      bonusStageEndAlpha = 1;
+
+      // Clear remaining enemies
+      state.enemies = [];
+      state.enemyBullets = [];
+
+      // Trigger inter-wave pause to show bonus results
+      interWavePause = true;
+      interWavePauseTimer = 3;
+      startEnergyRefill(state);
+    }
+  }
 
   // Update screen shake
   updateScreenShake(dt);
@@ -509,8 +922,13 @@ function update(dt) {
 
   // Don't spawn/update enemies during inter-wave pause
   if (!interWavePause) {
-    // Update wave manager
-    updateWaveManager(state, dt, adjustedConfig);
+    if (state.bonusStageActive) {
+      // Bonus stage: spawn mixed enemies!
+      updateBonusWaveSpawning(state, dt, adjustedConfig);
+    } else {
+      // Normal wave
+      updateWaveManager(state, dt, adjustedConfig);
+    }
   }
 
   // Update enemies (pass player position for kamikaze tracking)
@@ -540,6 +958,10 @@ function update(dt) {
     if (isEnemyOffScreen(enemy)) {
       state.enemies.splice(i, 1);
       state.perfectWave = false; // Letting enemies escape breaks perfect wave
+
+      // Track bonus stage escapes
+      bonusStageEnemyEscaped(state);
+
       // Count escaped enemies toward wave progression so it doesn't hang
       if (state.currentWave) {
         // Don't count as kill for score, but allow wave to progress
@@ -560,6 +982,10 @@ function update(dt) {
 
     if (isOffScreen(bullet)) {
       state.playerBullets.splice(i, 1);
+      // MISSED SHOT: Reset combo! 💔
+      if (state.combo > 0) {
+        resetCombo(state);
+      }
       continue;
     }
 
@@ -720,11 +1146,22 @@ function update(dt) {
       interWavePause = false;
       nextWave(state);
       adjustedConfig = getAdjustedConfig(state.difficulty, state.level);
-      const themeName = currentTheme?.name.toLowerCase().includes('absurd') ? 'absurd' : '';
-      startWave(state, adjustedConfig, themeName);
-      waveAnnouncementTimer = 2;
-      waveAnnouncementAlpha = 1;
-      audioManager.playWaveStart();
+
+      // Check if should trigger BONUS STAGE! 🎯
+      if (shouldTriggerBonusStage(state)) {
+        startBonusStage(state);
+        startBonusWave(state, adjustedConfig);
+        bonusStageAnnouncementTimer = 3;
+        bonusStageAnnouncementAlpha = 1;
+        audioManager.playWaveStart(); // TODO: Add special bonus stage music
+      } else {
+        // Normal wave
+        const themeName = currentTheme?.name.toLowerCase().includes('absurd') ? 'absurd' : '';
+        startWave(state, adjustedConfig, themeName);
+        waveAnnouncementTimer = 2;
+        waveAnnouncementAlpha = 1;
+        audioManager.playWaveStart();
+      }
     }
   }
 
@@ -738,6 +1175,16 @@ function update(dt) {
     waveCompleteTimer -= dt;
     waveCompleteAlpha = Math.max(0, waveCompleteTimer / 2);
   }
+
+  if (bonusStageAnnouncementTimer > 0) {
+    bonusStageAnnouncementTimer -= dt;
+    bonusStageAnnouncementAlpha = Math.max(0, bonusStageAnnouncementTimer / 3);
+  }
+
+  if (bonusStageEndTimer > 0) {
+    bonusStageEndTimer -= dt;
+    bonusStageEndAlpha = Math.max(0, bonusStageEndTimer / 3);
+  }
 }
 
 /**
@@ -749,6 +1196,11 @@ function render() {
 
   // Draw background
   drawBackground(ctx, backgroundElements, state.gameTime);
+
+  // Draw menu falling enemies (when in MENU state)
+  if (state.currentState === GameStates.MENU) {
+    drawMenuEnemies(ctx);
+  }
 
   // Apply screen shake effect
   ctx.save();
@@ -799,6 +1251,19 @@ function render() {
     // Draw wave complete (show both wave bonus and energy bonus)
     if (waveCompleteAlpha > 0) {
       drawWaveComplete(ctx, state.waveBonus, state.energyBonus, waveCompleteAlpha);
+    }
+
+    // Draw bonus stage UI
+    if (bonusStageAnnouncementAlpha > 0) {
+      drawBonusStageAnnouncement(ctx, state.level + 1, bonusStageAnnouncementAlpha);
+    }
+
+    if (state.bonusStageActive) {
+      drawBonusStageTimer(ctx, state.bonusStageTimer);
+    }
+
+    if (bonusStageEndAlpha > 0) {
+      drawBonusStageEnd(ctx, bonusStagePerfect, state.bonusStageEnemiesEscaped, bonusStageEndAlpha);
     }
   }
 
