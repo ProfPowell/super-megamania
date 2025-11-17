@@ -14,38 +14,54 @@ import { gameConfig } from '../config/gameConfig.js';
 export function drawHUD(ctx, state, fps) {
   const { hud } = gameConfig.ui;
 
-  ctx.font = hud.font;
-  ctx.fillStyle = hud.color;
-  ctx.textBaseline = 'top';
+  // Hide regular HUD during bonus stage (bonus stage has its own UI)
+  if (!state.bonusStageActive) {
+    ctx.font = hud.font;
+    ctx.fillStyle = hud.color;
+    ctx.textBaseline = 'top';
 
-  // Add shadow for better readability
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
+    // Add shadow for better readability
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
 
-  // Score (left)
-  ctx.textAlign = 'left';
-  ctx.fillText(`SCORE: ${state.score}`, hud.scorePosition.x, hud.scorePosition.y);
+    // Score (left)
+    ctx.textAlign = 'left';
+    ctx.fillText(`SCORE: ${state.score}`, hud.scorePosition.x, hud.scorePosition.y);
 
-  // Lives (right)
-  ctx.textAlign = 'right';
-  ctx.fillText(`LIVES: ${state.lives}`, hud.livesPosition.x, hud.livesPosition.y);
+    // Lives (right)
+    ctx.textAlign = 'right';
+    ctx.fillText(`LIVES: ${state.lives}`, hud.livesPosition.x, hud.livesPosition.y);
 
-  // Wave (center top)
-  ctx.textAlign = 'center';
-  const waveNum = state.currentWaveIndex + 1;
-  ctx.fillText(`WAVE ${waveNum}`, hud.wavePosition.x, hud.wavePosition.y);
+    // Wave (center top)
+    ctx.textAlign = 'center';
+    const waveNum = state.currentWaveIndex + 1;
+    ctx.fillText(`WAVE ${waveNum}`, hud.wavePosition.x, hud.wavePosition.y);
 
-  // Level (center, second row)
-  const level = state.level + 1;
-  ctx.fillText(`LEVEL ${level}`, hud.levelPosition.x, hud.levelPosition.y);
+    // Level (center, second row)
+    const level = state.level + 1;
+    ctx.fillText(`LEVEL ${level}`, hud.levelPosition.x, hud.levelPosition.y);
 
-  // Reset shadow
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  } else {
+    // During bonus stage, only show score and lives (smaller, out of the way)
+    ctx.font = '10px "Press Start 2P", monospace';
+    ctx.fillStyle = '#888888';
+    ctx.textBaseline = 'top';
+
+    // Score (left, smaller)
+    ctx.textAlign = 'left';
+    ctx.fillText(`SCORE: ${state.score}`, 10, 455);
+
+    // Lives (right, smaller)
+    ctx.textAlign = 'right';
+    ctx.fillText(`LIVES: ${state.lives}`, 630, 455);
+  }
 
   // FPS (debug)
   if (hud.showFPS) {
@@ -183,6 +199,11 @@ export function drawWaveComplete(ctx, bonus, energyBonus, alpha = 1.0) {
  * @param {Object} state - Game state
  */
 export function drawEnergyBar(ctx, state) {
+  // Don't show energy bar during bonus stage (energy doesn't deplete)
+  if (state.bonusStageActive) {
+    return;
+  }
+
   const { energyBar } = gameConfig.ui.hud;
   const { warningThreshold, criticalThreshold } = gameConfig.player.energy;
 

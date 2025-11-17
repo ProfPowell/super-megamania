@@ -485,6 +485,8 @@ function startBonusWave(state, config) {
     enemyKeys = ['wave1']; // Fallback
   }
 
+  console.log(`🎯 BONUS STAGE STARTING! Available enemy types: ${enemyKeys.length}`, enemyKeys);
+
   // Create wave config for bonus stage
   state.currentWave = {
     name: `BONUS STAGE - LEVEL ${state.level + 1}`,
@@ -510,6 +512,8 @@ function startBonusWave(state, config) {
   state.perfectWave = true;
   state.waveFormationComplete = true; // No formation delay for bonus stage
 
+  console.log(`🎯 Spawning initial batch of 5 enemies...`);
+
   // Immediately spawn first batch of enemies (5 enemies)
   for (let i = 0; i < 5; i++) {
     if (state.enemiesSpawned < state.currentWave.count) {
@@ -526,10 +530,13 @@ function startBonusWave(state, config) {
         config.enemyFireRateMult || 1
       );
 
+      console.log(`  Created enemy ${i}: type=${randomKey}, x=${enemy.x}, y=${enemy.y}`);
       state.enemies.push(enemy);
       state.enemiesSpawned++;
     }
   }
+
+  console.log(`🎯 Initial spawn complete. Total enemies: ${state.enemies.length}, enemiesSpawned: ${state.enemiesSpawned}`);
 }
 
 /**
@@ -563,6 +570,10 @@ function updateBonusWaveSpawning(state, dt, config) {
       config.enemyFireRateMult || 1
     );
 
+    if (state.enemiesSpawned % 5 === 0) {
+      console.log(`🎯 Bonus spawn: ${state.enemiesSpawned}/${state.currentWave.count}, type=${randomKey}`);
+    }
+
     state.enemies.push(enemy);
     state.enemiesSpawned++;
     state.lastEnemySpawnTime = state.gameTime;
@@ -570,6 +581,7 @@ function updateBonusWaveSpawning(state, dt, config) {
 
   // Mark spawn as complete
   if (state.enemiesSpawned >= state.currentWave.count) {
+    console.log(`🎯 Bonus stage spawning complete! Total spawned: ${state.enemiesSpawned}`);
     state.spawnComplete = true;
   }
 }
@@ -1236,6 +1248,7 @@ function update(dt) {
 
       // Check if should trigger BONUS STAGE! 🎯
       if (shouldTriggerBonusStage(state)) {
+        console.log(`🎯 TRIGGERING BONUS STAGE! Level: ${state.level}, Wave: ${state.currentWaveIndex}, Total enemies: ${state.enemies.length}`);
         startBonusStage(state);
         startBonusWave(state, adjustedConfig);
         bonusStageAnnouncementTimer = 3;
@@ -1300,6 +1313,9 @@ function render() {
     }
 
     // Draw enemies with theme images
+    if (state.bonusStageActive && state.enemies.length > 0 && Math.random() < 0.01) {
+      console.log(`🎯 Rendering ${state.enemies.length} bonus enemies`);
+    }
     for (const enemy of state.enemies) {
       const enemyImage = themeImages[enemy.themeKey] || null;
       drawEnemy(ctx, enemy, enemyImage);
