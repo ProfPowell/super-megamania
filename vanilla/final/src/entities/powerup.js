@@ -147,7 +147,8 @@ export function drawPowerUp(ctx, powerUp) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(powerUp.emoji, 0, 0);
+  // Slight vertical offset to visually center emoji in circle
+  ctx.fillText(powerUp.emoji, 0, 1);
 
   ctx.restore();
 }

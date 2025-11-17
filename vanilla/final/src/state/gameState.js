@@ -376,13 +376,16 @@ export function resetCombo(state) {
  */
 
 /**
- * Check if should trigger bonus stage (every 5 levels after completing all waves)
+ * Check if should trigger bonus stage (every 5 waves)
  * @param {GameState} state - Game state
  * @returns {boolean} True if should start bonus stage
  */
 export function shouldTriggerBonusStage(state) {
-  // Trigger on levels 5, 10, 15, 20, etc. (state.level % 5 === 0 after nextWave increment)
-  return state.level % 5 === 0 && state.currentWaveIndex === 0;
+  // Calculate total waves completed across all levels
+  const totalWaves = state.level * 15 + state.currentWaveIndex;
+
+  // Trigger every 5 waves (at waves 5, 10, 15, 20, etc.), but not at game start
+  return totalWaves > 0 && totalWaves % 5 === 0;
 }
 
 /**
