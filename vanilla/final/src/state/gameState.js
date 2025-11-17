@@ -381,8 +381,8 @@ export function resetCombo(state) {
  * @returns {boolean} True if should start bonus stage
  */
 export function shouldTriggerBonusStage(state) {
-  // Trigger on levels 5, 10, 15, 20, etc. (when level+1 is divisible by 5)
-  return (state.level + 1) % 5 === 0 && state.currentWaveIndex === 0;
+  // Trigger on levels 5, 10, 15, 20, etc. (state.level % 5 === 0 after nextWave increment)
+  return state.level % 5 === 0 && state.currentWaveIndex === 0;
 }
 
 /**

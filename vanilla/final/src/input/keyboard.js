@@ -101,6 +101,21 @@ export function createKeyboardInput() {
     keys.clear();
   });
 
+  // Handle visibility change (clear keys when tab is hidden)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      keys.clear();
+    }
+  });
+
+  // Clear keys on Escape (helps prevent stuck keys when opening menus)
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') {
+      // Small delay to allow menu to open, then clear
+      setTimeout(() => keys.clear(), 50);
+    }
+  });
+
   return {
     /**
      * Get current keyboard state

@@ -410,6 +410,9 @@ function startGame() {
 function pauseGame() {
   if (state.currentState === GameStates.PLAYING) {
     state.currentState = GameStates.PAUSED;
+    // Clear any stuck keys by disabling and re-enabling input
+    inputManager.disable();
+    inputManager.enable();
     menuController.showScreen('pause');
   }
 }
@@ -420,6 +423,9 @@ function pauseGame() {
 function resumeGame() {
   if (state.currentState === GameStates.PAUSED) {
     state.currentState = GameStates.PLAYING;
+    // Clear keys when resuming to prevent stuck input
+    inputManager.disable();
+    inputManager.enable();
     menuController.hideAllScreens();
   }
 }
@@ -429,6 +435,9 @@ function resumeGame() {
  */
 function quitToMenu() {
   state.currentState = GameStates.MENU;
+  // Clear any stuck keys when returning to menu
+  inputManager.disable();
+  inputManager.enable();
   menuController.showScreen('menu');
 }
 

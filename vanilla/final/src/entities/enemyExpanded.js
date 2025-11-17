@@ -181,16 +181,18 @@ export function updateEnemy(enemy, dt, playerPos = null) {
       updateSweepPattern(enemy, dt);
   }
 
-  // Horizontal wrapping - keep enemies fully within playable area
-  const playAreaWidth = 640;
-  const enemyWidth = enemy.width || 24;
+  // Horizontal wrapping - keep enemies within player's reachable area
+  // Player moveZone is 16 to 624, so we match those bounds (centered enemies)
+  const minX = 16;
+  const maxX = 624;
+  const halfWidth = (enemy.width || 24) / 2;
 
-  if (enemy.x < 0) {
-    // Went off left, wrap to right side (inside play area)
-    enemy.x = playAreaWidth - enemyWidth;
-  } else if (enemy.x + enemyWidth > playAreaWidth) {
-    // Went off right, wrap to left side (inside play area)
-    enemy.x = 0;
+  if (enemy.x - halfWidth < minX) {
+    // Went off left, wrap to right side
+    enemy.x = maxX - halfWidth;
+  } else if (enemy.x + halfWidth > maxX) {
+    // Went off right, wrap to left side
+    enemy.x = minX + halfWidth;
   }
 }
 
@@ -363,12 +365,13 @@ function updateKamikazePattern(enemy, dt, playerPos) {
 export function canEnemyFire(enemy) {
   if (enemy.fireRate === 0) return false;
 
-  // Don't fire if enemy is outside the visible play area
-  // This prevents bullets from spawning in weird positions
-  const playAreaWidth = 640;
-  const margin = 20; // Safety margin
+  // Don't fire if enemy is outside the playable area
+  // Match player moveZone boundaries (16 to 624)
+  const minX = 16;
+  const maxX = 624;
+  const margin = 10; // Small safety margin
 
-  if (enemy.x < -margin || enemy.x > playAreaWidth + margin) {
+  if (enemy.x < minX - margin || enemy.x > maxX + margin) {
     return false;
   }
 
