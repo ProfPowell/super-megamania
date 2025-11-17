@@ -15,6 +15,7 @@ const PLAYER_NAME_KEY = gameConfig.storage.keys.playerName;
  * @property {boolean} sfxEnabled - Sound effects enabled
  * @property {boolean} musicEnabled - Music enabled
  * @property {number} masterVolume - Master volume (0-1)
+ * @property {boolean} crtMode - CRT mode enabled (scanlines, larger graphics)
  */
 
 /**
@@ -56,7 +57,8 @@ export function getDefaultSettings() {
     theme: 'cats',
     sfxEnabled: gameConfig.storage.defaults.audioEnabled,
     musicEnabled: gameConfig.storage.defaults.musicEnabled,
-    masterVolume: gameConfig.audio.masterVolume
+    masterVolume: gameConfig.audio.masterVolume,
+    crtMode: false
   };
 }
 
@@ -124,5 +126,12 @@ export function applySettingsToUI(settings) {
   }
   if (volumeValue) {
     volumeValue.textContent = `${Math.round(settings.masterVolume * 100)}%`;
+  }
+
+  // CRT mode toggle
+  const crtToggle = document.getElementById('crt-toggle');
+  if (crtToggle) {
+    crtToggle.textContent = settings.crtMode ? 'ON' : 'OFF';
+    crtToggle.classList.toggle('off', !settings.crtMode);
   }
 }

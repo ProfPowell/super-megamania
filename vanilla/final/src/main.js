@@ -85,6 +85,9 @@ async function init() {
   const settings = loadSettings();
   applySettingsToUI(settings);
 
+  // Apply CRT mode if enabled
+  applyCrtMode(settings.crtMode);
+
   // Load theme
   await loadTheme(settings.theme || 'cats');
 
@@ -226,6 +229,9 @@ function setupEventListeners() {
     const settings = getSettingsFromUI();
     saveSettings(settings);
 
+    // Apply CRT mode
+    applyCrtMode(settings.crtMode);
+
     // Reload theme if changed
     if (settings.theme !== currentTheme.name.toLowerCase()) {
       await loadTheme(settings.theme);
@@ -265,6 +271,7 @@ function setupEventListeners() {
   document.getElementById('sfx-toggle').addEventListener('click', toggleSfx);
   document.getElementById('music-toggle').addEventListener('click', toggleMusic);
   document.getElementById('volume-slider').addEventListener('input', updateVolume);
+  document.getElementById('crt-toggle').addEventListener('click', toggleCRT);
 
   // Keyboard navigation for menus
   let lastKeyTime = 0;
@@ -340,7 +347,8 @@ function getSettingsFromUI() {
     theme: document.getElementById('theme-select').value,
     sfxEnabled: document.getElementById('sfx-toggle').textContent === 'ON',
     musicEnabled: document.getElementById('music-toggle').textContent === 'ON',
-    masterVolume: parseInt(document.getElementById('volume-slider').value) / 100
+    masterVolume: parseInt(document.getElementById('volume-slider').value) / 100,
+    crtMode: document.getElementById('crt-toggle').textContent === 'ON'
   };
 }
 
@@ -374,6 +382,36 @@ function updateVolume(e) {
   const value = parseInt(e.target.value);
   document.getElementById('volume-value').textContent = `${value}%`;
   audioManager.setMasterVolume(value / 100);
+}
+
+/**
+ * Toggle CRT mode
+ */
+function toggleCRT() {
+  const btn = document.getElementById('crt-toggle');
+  const enabled = btn.textContent === 'OFF';
+  btn.textContent = enabled ? 'ON' : 'OFF';
+  btn.classList.toggle('off', !enabled);
+  applyCrtMode(enabled);
+}
+
+/**
+ * Apply or remove CRT mode effects
+ * @param {boolean} enabled - Whether CRT mode is enabled
+ */
+function applyCrtMode(enabled) {
+  const gameContainer = document.getElementById('game-container');
+  const crtOverlay = document.getElementById('crt-overlay');
+
+  if (enabled) {
+    gameContainer.classList.add('crt-mode');
+    crtOverlay.classList.remove('hidden');
+    console.log('🖥️ CRT mode enabled - enjoy the retro vibes!');
+  } else {
+    gameContainer.classList.remove('crt-mode');
+    crtOverlay.classList.add('hidden');
+    console.log('🖥️ CRT mode disabled');
+  }
 }
 
 /**

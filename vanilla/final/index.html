@@ -25,6 +25,9 @@
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
+    <!-- CRT Scanlines Overlay -->
+    <div id="crt-overlay" class="crt-overlay hidden"></div>
+
     <!-- Touch Controls (Mobile) -->
     <div id="touch-controls" class="touch-controls hidden">
       <button id="btn-left" class="touch-btn btn-left" aria-label="Move Left">◀</button>
@@ -88,6 +91,10 @@
           <label>Volume:</label>
           <input type="range" id="volume-slider" min="0" max="100" value="70" class="setting-slider">
           <span id="volume-value">70%</span>
+        </div>
+        <div class="setting-row">
+          <label>CRT Mode:</label>
+          <button id="crt-toggle" class="setting-toggle">OFF</button>
         </div>
       </div>
       <button id="btn-back-settings" class="menu-btn">BACK</button>
