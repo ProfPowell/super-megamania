@@ -490,18 +490,18 @@ function startBonusWave(state, config) {
   // Create wave config for bonus stage
   state.currentWave = {
     name: `BONUS STAGE - LEVEL ${state.level + 1}`,
-    count: 30, // Lots of enemies!
-    spawnInterval: 200, // Fast spawning (ms)
+    count: 40, // Lots of enemies!
+    spawnInterval: 300, // Spawn every 300ms
     formationDelay: 0, // No delay
     themeKey: 'mixed', // Special flag for mixed enemies
     // Enemy properties
-    enemy: { width: 24, height: 24, color: '#ff00ff', hp: 1, scoreValue: 50 },
-    speed: 100,
+    enemy: { width: 24, height: 24, color: '#ff00ff', hp: 1, scoreValue: 100 },
+    speed: 0, // No horizontal speed for straight pattern
     pathType: 'straight',
-    pathParams: { ySpeed: 80 },
-    fireRate: 2000,
-    bulletSpeed: 200,
-    requiredKills: 30
+    pathParams: { ySpeed: 60 }, // Slower descent for better gameplay
+    fireRate: 3000, // Less frequent shooting
+    bulletSpeed: 150,
+    requiredKills: 40
   };
 
   // Start spawning mixed enemies

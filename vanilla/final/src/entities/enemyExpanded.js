@@ -177,6 +177,9 @@ export function updateEnemy(enemy, dt, playerPos = null) {
     case 'kamikaze':
       updateKamikazePattern(enemy, dt, playerPos);
       break;
+    case 'straight':
+      updateStraightPattern(enemy, dt);
+      break;
     default:
       updateSweepPattern(enemy, dt);
   }
@@ -206,6 +209,12 @@ function updateSweepPattern(enemy, dt) {
   if (enemy.x < 50 || enemy.x > 590) {
     enemy.pathParams.direction *= -1;
   }
+}
+
+function updateStraightPattern(enemy, dt) {
+  // Move straight down (no horizontal movement)
+  const { ySpeed } = enemy.pathParams;
+  enemy.y += (ySpeed || 50) * dt;
 }
 
 function updateZigzagPattern(enemy, dt) {
