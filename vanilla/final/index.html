@@ -124,17 +124,23 @@
       <p class="subtitle">Press ESC to resume</p>
     </div>
 
+    <!-- High Score Name Entry Screen -->
+    <div id="name-entry-screen" class="overlay hidden">
+      <h2 class="game-over-title">NEW HIGH SCORE!</h2>
+      <div id="name-entry-score" class="final-score"></div>
+      <div class="name-entry">
+        <label>Enter Your Initials:</label>
+        <input type="text" id="player-name" maxlength="3" value="AAA" class="name-input">
+      </div>
+      <p class="subtitle">Press ENTER when done</p>
+    </div>
+
     <!-- Game Over Screen -->
     <div id="game-over-screen" class="overlay hidden">
       <h2 class="game-over-title">GAME OVER</h2>
       <div id="final-score" class="final-score"></div>
-      <div id="new-high-score" class="new-high-score hidden">NEW HIGH SCORE!</div>
-      <div id="name-entry" class="name-entry hidden">
-        <label>Enter Initials:</label>
-        <input type="text" id="player-name" maxlength="3" value="AAA" class="name-input">
-      </div>
       <nav class="menu-buttons">
-        <button id="btn-restart" class="menu-btn">PLAY AGAIN</button>
+        <button id="btn-restart" class="menu-btn selected">PLAY AGAIN</button>
         <button id="btn-menu" class="menu-btn">MAIN MENU</button>
       </nav>
     </div>

@@ -31,6 +31,10 @@ export function createMenuController() {
       id: 'pause-screen',
       buttons: ['btn-resume', 'btn-quit']
     },
+    nameEntry: {
+      id: 'name-entry-screen',
+      buttons: []
+    },
     gameOver: {
       id: 'game-over-screen',
       buttons: ['btn-restart', 'btn-menu']

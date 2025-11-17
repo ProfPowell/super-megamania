@@ -93,7 +93,14 @@ export function createGameState(difficulty = 'normal') {
     maxCombo: 0,                 // Best combo this game
     comboTimer: 0,               // Time left to continue combo
     comboMultiplier: 1,          // Current score multiplier from combo
-    lastComboTime: 0             // When last combo hit happened
+    lastComboTime: 0,            // When last combo hit happened
+
+    // BONUS STAGE SYSTEM! 🎯
+    bonusStageActive: false,     // Is bonus stage currently active
+    bonusStageTimer: 0,          // Time remaining in bonus stage
+    bonusStageTimeLimit: 45,     // Time limit for bonus stage (seconds)
+    bonusStageEnemiesEscaped: 0, // Number of enemies that escaped
+    bonusStageScore: 0           // Score earned during bonus stage
   };
 }
 
@@ -320,8 +327,8 @@ export function incrementCombo(state) {
     state.maxCombo = state.combo;
   }
 
-  // Reset combo timer (player has 2 seconds to get next kill)
-  state.comboTimer = 2.0;
+  // Reset combo timer (player has 1.5 seconds to get next kill - tighter timing!)
+  state.comboTimer = 1.5;
   state.lastComboTime = state.gameTime;
 
   // Calculate multiplier (caps at 4x)
@@ -362,4 +369,78 @@ export function resetCombo(state) {
   state.combo = 0;
   state.comboTimer = 0;
   state.comboMultiplier = 1;
+}
+
+/**
+ * BONUS STAGE SYSTEM FUNCTIONS 🎯
+ */
+
+/**
+ * Check if should trigger bonus stage (every 5 levels after completing all waves)
+ * @param {GameState} state - Game state
+ * @returns {boolean} True if should start bonus stage
+ */
+export function shouldTriggerBonusStage(state) {
+  // Trigger on levels 5, 10, 15, 20, etc. (when level+1 is divisible by 5)
+  return (state.level + 1) % 5 === 0 && state.currentWaveIndex === 0;
+}
+
+/**
+ * Start bonus stage
+ * @param {GameState} state - Game state
+ */
+export function startBonusStage(state) {
+  state.bonusStageActive = true;
+  state.bonusStageTimer = state.bonusStageTimeLimit;
+  state.bonusStageEnemiesEscaped = 0;
+  state.bonusStageScore = 0;
+}
+
+/**
+ * Update bonus stage timer
+ * @param {GameState} state - Game state
+ * @param {number} dt - Delta time in seconds
+ * @returns {boolean} True if bonus stage ended
+ */
+export function updateBonusStage(state, dt) {
+  if (!state.bonusStageActive) return false;
+
+  state.bonusStageTimer -= dt;
+
+  if (state.bonusStageTimer <= 0) {
+    // Time's up! End bonus stage
+    return endBonusStage(state);
+  }
+
+  return false;
+}
+
+/**
+ * Track enemy escaping in bonus stage
+ * @param {GameState} state - Game state
+ */
+export function bonusStageEnemyEscaped(state) {
+  if (state.bonusStageActive) {
+    state.bonusStageEnemiesEscaped++;
+  }
+}
+
+/**
+ * End bonus stage and award perfect bonus if applicable
+ * @param {GameState} state - Game state
+ * @returns {boolean} True if got perfect bonus
+ */
+export function endBonusStage(state) {
+  state.bonusStageActive = false;
+  state.bonusStageTimer = 0;
+
+  // Perfect bonus if no enemies escaped!
+  const perfectBonus = state.bonusStageEnemiesEscaped === 0;
+  if (perfectBonus) {
+    const PERFECT_BONUS = 1000;
+    addScore(state, PERFECT_BONUS);
+    state.bonusStageScore += PERFECT_BONUS;
+  }
+
+  return perfectBonus;
 }
