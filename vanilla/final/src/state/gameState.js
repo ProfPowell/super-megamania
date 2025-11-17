@@ -98,7 +98,7 @@ export function createGameState(difficulty = 'normal') {
     // BONUS STAGE SYSTEM! 🎯
     bonusStageActive: false,     // Is bonus stage currently active
     bonusStageTimer: 0,          // Time remaining in bonus stage
-    bonusStageTimeLimit: 45,     // Time limit for bonus stage (seconds)
+    bonusStageTimeLimit: 20,     // Time limit for bonus stage (seconds)
     bonusStageEnemiesEscaped: 0, // Number of enemies that escaped
     bonusStageScore: 0           // Score earned during bonus stage
   };
@@ -187,6 +187,9 @@ export function depleteEnergy(state, dt) {
 
   // STOP depleting when wave is complete!
   if (state.waveComplete) return false;
+
+  // STOP depleting during bonus stage!
+  if (state.bonusStageActive) return false;
 
   const { depletionRate, startDelay } = gameConfig.player.energy;
 

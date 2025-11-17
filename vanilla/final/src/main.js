@@ -58,6 +58,7 @@ let bonusStageAnnouncementAlpha = 0;
 let bonusStageEndTimer = 0;
 let bonusStageEndAlpha = 0;
 let bonusStagePerfect = false;
+let skipNextWaveAfterBonus = false;
 
 // Pause tracking
 let pausePressed = false;
@@ -479,9 +480,9 @@ function handlePlayerDeath() {
  */
 function startBonusWave(state, config) {
   // Get all available enemy keys for mixing
-  const enemyKeys = Object.keys(themeImages);
+  let enemyKeys = Object.keys(themeImages);
   if (enemyKeys.length === 0) {
-    enemyKeys.push('wave1'); // Fallback
+    enemyKeys = ['wave1']; // Fallback
   }
 
   // Create wave config for bonus stage
@@ -544,8 +545,10 @@ function updateBonusWaveSpawning(state, dt, config) {
 
   if (timeSinceLastSpawn >= state.currentWave.spawnInterval && state.enemiesSpawned < state.currentWave.count) {
     // Get all available enemy keys
-    const enemyKeys = Object.keys(themeImages);
-    if (enemyKeys.length === 0) return;
+    let enemyKeys = Object.keys(themeImages);
+    if (enemyKeys.length === 0) {
+      enemyKeys = ['wave1']; // Fallback
+    }
 
     // Random enemy type
     const randomKey = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
@@ -691,19 +694,26 @@ function drawBonusStageAnnouncement(ctx, level, alpha) {
 }
 
 /**
- * Draw bonus stage timer
+ * Draw bonus stage timer and level info
  * @param {CanvasRenderingContext2D} ctx - Canvas context
  * @param {number} timeLeft - Time remaining in seconds
+ * @param {number} level - Current level number
  */
-function drawBonusStageTimer(ctx, timeLeft) {
+function drawBonusStageTimer(ctx, timeLeft, level) {
   ctx.save();
 
   const seconds = Math.ceil(timeLeft);
-  const isLowTime = seconds <= 10;
+  const isLowTime = seconds <= 5;
 
-  ctx.font = "20px 'Press Start 2P', monospace";
+  // Draw "BONUS LEVEL X" at the top center
+  ctx.font = "16px 'Press Start 2P', monospace";
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
+  ctx.fillStyle = '#ff00ff';
+  ctx.fillText(`BONUS LEVEL ${level}`, 320, 10);
+
+  // Draw timer below it
+  ctx.font = "14px 'Press Start 2P', monospace";
 
   // Pulse when low on time
   if (isLowTime) {
@@ -714,7 +724,7 @@ function drawBonusStageTimer(ctx, timeLeft) {
     ctx.fillStyle = '#ffff00';
   }
 
-  ctx.fillText(`TIME: ${seconds}s`, 320, 10);
+  ctx.fillText(`TIME: ${seconds}s`, 320, 32);
 
   ctx.restore();
 }
@@ -866,6 +876,12 @@ function update(dt) {
       // Clear remaining enemies
       state.enemies = [];
       state.enemyBullets = [];
+
+      // Mark wave as complete so we transition properly
+      state.waveComplete = true;
+
+      // Set flag to skip nextWave call (we already advanced before bonus stage)
+      skipNextWaveAfterBonus = true;
 
       // Trigger inter-wave pause to show bonus results
       interWavePause = true;
@@ -1199,7 +1215,23 @@ function update(dt) {
     if (interWavePauseTimer <= 0) {
       // Pause complete, start next wave
       interWavePause = false;
-      nextWave(state);
+
+      // Skip nextWave if we just finished bonus stage (already advanced)
+      if (!skipNextWaveAfterBonus) {
+        nextWave(state);
+      } else {
+        // Just reset wave tracking without advancing
+        state.enemiesKilled = 0;
+        state.waveComplete = false;
+        state.perfectWave = true;
+        state.enemiesSpawned = 0;
+        state.spawnComplete = false;
+        state.enemies = [];
+        state.enemyBullets = [];
+        resetCombo(state);
+        skipNextWaveAfterBonus = false; // Reset flag
+      }
+
       adjustedConfig = getAdjustedConfig(state.difficulty, state.level);
 
       // Check if should trigger BONUS STAGE! 🎯
@@ -1314,7 +1346,7 @@ function render() {
     }
 
     if (state.bonusStageActive) {
-      drawBonusStageTimer(ctx, state.bonusStageTimer);
+      drawBonusStageTimer(ctx, state.bonusStageTimer, state.level + 1);
     }
 
     if (bonusStageEndAlpha > 0) {
