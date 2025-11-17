@@ -478,39 +478,53 @@ function handlePlayerDeath() {
  * @param {Object} config - Adjusted game config
  */
 function startBonusWave(state, config) {
-  state.currentWave = {
-    name: `BONUS STAGE - LEVEL ${state.level + 1}`,
-    totalEnemies: 30, // Lots of enemies!
-    spawnInterval: 200, // Fast spawning
-    themeKey: 'mixed' // Special flag for mixed enemies
-  };
-
   // Get all available enemy keys for mixing
   const enemyKeys = Object.keys(themeImages);
   if (enemyKeys.length === 0) {
     enemyKeys.push('wave1'); // Fallback
   }
 
+  // Create wave config for bonus stage
+  state.currentWave = {
+    name: `BONUS STAGE - LEVEL ${state.level + 1}`,
+    count: 30, // Lots of enemies!
+    spawnInterval: 200, // Fast spawning (ms)
+    formationDelay: 0, // No delay
+    themeKey: 'mixed', // Special flag for mixed enemies
+    // Enemy properties
+    enemy: { width: 24, height: 24, color: '#ff00ff', hp: 1, scoreValue: 50 },
+    speed: 100,
+    pathType: 'straight',
+    pathParams: { ySpeed: 80 },
+    fireRate: 2000,
+    bulletSpeed: 200,
+    requiredKills: 30
+  };
+
   // Start spawning mixed enemies
   state.waveStartTime = state.gameTime;
-  state.lastEnemySpawnTime = state.gameTime;
+  state.lastEnemySpawnTime = state.gameTime - 1; // Allow immediate spawn
   state.enemiesSpawned = 0;
   state.spawnComplete = false;
   state.perfectWave = true;
+  state.waveFormationComplete = true; // No formation delay for bonus stage
 
-  // Immediately spawn first batch of enemies
+  // Immediately spawn first batch of enemies (5 enemies)
   for (let i = 0; i < 5; i++) {
-    if (state.enemiesSpawned < state.currentWave.totalEnemies) {
+    if (state.enemiesSpawned < state.currentWave.count) {
       // Random enemy type for each spawn
       const randomKey = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
 
+      // Create a temporary wave config with the random theme key
+      const tempWaveConfig = { ...state.currentWave, themeKey: randomKey };
+
       const enemy = createEnemy(
-        Math.random() * (config.canvas.width - 32),
-        -30 - i * 40,
-        randomKey,
-        config
+        tempWaveConfig,
+        state.enemiesSpawned,
+        config.enemySpeedMult || 1,
+        config.enemyFireRateMult || 1
       );
-      enemy.themeKey = randomKey; // Ensure theme key is set
+
       state.enemies.push(enemy);
       state.enemiesSpawned++;
     }
@@ -528,7 +542,7 @@ function updateBonusWaveSpawning(state, dt, config) {
 
   const timeSinceLastSpawn = (state.gameTime - state.lastEnemySpawnTime) * 1000;
 
-  if (timeSinceLastSpawn >= state.currentWave.spawnInterval && state.enemiesSpawned < state.currentWave.totalEnemies) {
+  if (timeSinceLastSpawn >= state.currentWave.spawnInterval && state.enemiesSpawned < state.currentWave.count) {
     // Get all available enemy keys
     const enemyKeys = Object.keys(themeImages);
     if (enemyKeys.length === 0) return;
@@ -536,20 +550,23 @@ function updateBonusWaveSpawning(state, dt, config) {
     // Random enemy type
     const randomKey = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
 
+    // Create a temporary wave config with the random theme key
+    const tempWaveConfig = { ...state.currentWave, themeKey: randomKey };
+
     const enemy = createEnemy(
-      Math.random() * (config.canvas.width - 32),
-      -30,
-      randomKey,
-      config
+      tempWaveConfig,
+      state.enemiesSpawned,
+      config.enemySpeedMult || 1,
+      config.enemyFireRateMult || 1
     );
-    enemy.themeKey = randomKey;
+
     state.enemies.push(enemy);
     state.enemiesSpawned++;
     state.lastEnemySpawnTime = state.gameTime;
   }
 
   // Mark spawn as complete
-  if (state.enemiesSpawned >= state.currentWave.totalEnemies) {
+  if (state.enemiesSpawned >= state.currentWave.count) {
     state.spawnComplete = true;
   }
 }
@@ -1067,11 +1084,40 @@ function update(dt) {
   // Update active power-up timers
   updateActivePowerUps(state);
 
-  // Check player collisions (skip if invincible or has shield)
+  // Check player collisions
   const hasShield = hasPowerUp(state, 'shield');
-  if (!state.player.isInvincible && !hasShield) {
-    const playerHitbox = getPlayerHitbox(state.player);
+  const playerHitbox = getPlayerHitbox(state.player);
 
+  // Shield collision: destroy enemies that hit the shield!
+  if (hasShield && !state.player.isInvincible) {
+    const hitByEnemy = checkPlayerEnemyCollision(playerHitbox, state.enemies);
+    if (hitByEnemy) {
+      // Remove enemy
+      state.enemies = state.enemies.filter(e => e !== hitByEnemy);
+      state.enemiesKilled++;
+
+      // Award points for shield destruction
+      const extraLife = addScore(state, hitByEnemy.scoreValue);
+      if (extraLife) {
+        audioManager.playExtraLife();
+      }
+
+      // Create explosion for destroyed enemy
+      const isAbsurd = currentTheme === 'absurd';
+      if (isAbsurd) {
+        state.particles.push(...createAbsurdExplosion(hitByEnemy.x, hitByEnemy.y, hitByEnemy.color));
+        triggerScreenShake(3, 0.12);
+      } else {
+        state.particles.push(...createExplosion(hitByEnemy.x, hitByEnemy.y, hitByEnemy.color));
+        triggerScreenShake(2, 0.08);
+      }
+
+      audioManager.playEnemyExplode();
+    }
+    // Shield blocks bullets too, so no bullet collision check
+  }
+  // Normal collision (no shield or invincible)
+  else if (!state.player.isInvincible && !hasShield) {
     // Player vs enemies
     const hitByEnemy = checkPlayerEnemyCollision(playerHitbox, state.enemies);
     if (hitByEnemy) {
