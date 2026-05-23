@@ -1,5 +1,6 @@
 import { loadPlayerName, savePlayerName } from '../storage/settings.js';
 import { isHighScore, addHighScore, renderHighScores } from '../storage/highScores.js';
+import { GameStates } from '../state/gameState.js';
 
 /**
  * Game-over flow: optional name entry for a new high score, then the
@@ -10,7 +11,7 @@ import { isHighScore, addHighScore, renderHighScores } from '../storage/highScor
  */
 
 export function handleGameOver(ctx, menuController) {
-  ctx.state.currentState = 'GAME_OVER';
+  ctx.state.currentState = GameStates.GAME_OVER;
 
   ctx.audio.stopMusic();
   ctx.audio.playGameOver();

@@ -52,11 +52,15 @@ import {
 } from '../systems/collision.js';
 import { startWave, updateWaveManager } from '../systems/waveManager.js';
 import {
+  createExplosion,
+  createAbsurdExplosion,
+  createPlayerExplosion,
   createTrailParticle,
   updateParticles,
   drawParticles
 } from '../systems/particleSystem.js';
 import {
+  triggerScreenShake,
   updateScreenShake,
   applyScreenShake
 } from '../systems/screenShake.js';
@@ -68,19 +72,20 @@ import {
   drawActivePowerUps
 } from '../ui/hud.js';
 import { clearCanvas } from '../canvas.js';
+import { getAdjustedConfig } from '../config/gameConfig.js';
 import { Events } from '../app/events.js';
 import {
   beginBonusWave,
   updateBonusSpawning,
-  tickBonus,
-  tickEndOverlay,
   reportEscape,
   drawAnnouncement as drawBonusAnnouncement,
   drawTimer as drawBonusTimer,
-  drawEnd as drawBonusEnd,
-  shouldSkipNextWave,
-  consumeSkipNextWave
+  drawEnd as drawBonusEnd
 } from './bonusScene.js';
+import {
+  startBonusStage,
+  updateBonusStage
+} from './_bonusStateMutations.js';
 
 /**
  * The gameplay scene. Single update/render path covering wave play
@@ -91,8 +96,9 @@ import {
  * main.js are scene-local closures here so the play scene is the
  * sole owner of its own per-frame state.
  *
- * Phase 1 keeps every inline audio/shake/particle call exactly as
- * it was in main.js. Phase 2A replaces those with bus emits.
+ * Phase 1 keeps every inline audio/shake/particle call exactly as it
+ * was in the original main.js update(). Bus emits are added as new
+ * hooks so Phase 2A reactors can subscribe without changing behavior.
  */
 export function createPlayScene({ menuController, onGameOver }) {
   let waveAnnouncementAlpha = 0;
@@ -103,8 +109,33 @@ export function createPlayScene({ menuController, onGameOver }) {
   let interWavePauseTimer = 0;
   let pausePressed = false;
 
+  let bonusStageAnnouncementTimer = 0;
+  let bonusStageAnnouncementAlpha = 0;
+  let bonusStageEndTimer = 0;
+  let bonusStageEndAlpha = 0;
+  let bonusStagePerfect = false;
+  let skipNextWaveAfterBonus = false;
+
+  function enter() {
+    // Reset all closure timers when (re)entering the play scene so a
+    // fresh run does not inherit alpha/timer values from a prior run.
+    waveAnnouncementAlpha = 1;
+    waveAnnouncementTimer = 2;
+    waveCompleteAlpha = 0;
+    waveCompleteTimer = 0;
+    interWavePause = false;
+    interWavePauseTimer = 0;
+    pausePressed = false;
+    bonusStageAnnouncementTimer = 0;
+    bonusStageAnnouncementAlpha = 0;
+    bonusStageEndTimer = 0;
+    bonusStageEndAlpha = 0;
+    bonusStagePerfect = false;
+    skipNextWaveAfterBonus = false;
+  }
+
   function handlePlayerDeath(ctx) {
-    const { state, adjustedConfig, audio, theme, bus } = ctx;
+    const { state, audio, theme, bus } = ctx;
     audio.playPlayerDeath();
 
     if (state.waveComplete) {
@@ -119,10 +150,11 @@ export function createPlayScene({ menuController, onGameOver }) {
     state.playerBullets = [];
     refillEnergy(state);
 
-    const themeName = theme && theme.name.toLowerCase().includes('absurd') ? 'absurd' : '';
-    startWave(state, adjustedConfig, themeName);
+    const themeName = theme && theme.name && theme.name.toLowerCase().includes('absurd') ? 'absurd' : '';
+    startWave(state, ctx.adjustedConfig, themeName);
     waveAnnouncementTimer = 2;
     waveAnnouncementAlpha = 1;
+    audio.playWaveStart();
     bus.emit(Events.WAVE_START, { wave: state.currentWave });
   }
 
@@ -135,10 +167,27 @@ export function createPlayScene({ menuController, onGameOver }) {
     updateBackground(ctx.backgroundElements, dt, state.gameTime);
     updateCombo(state, dt);
 
+    // BONUS STAGE timer tick
     if (state.bonusStageActive) {
-      tickBonus(ctx, dt);
+      const bonusEnded = updateBonusStage(state, dt);
+      if (bonusEnded) {
+        bonusStagePerfect = state.bonusStageEnemiesEscaped === 0;
+        bonusStageEndTimer = 3;
+        bonusStageEndAlpha = 1;
+        state.enemies = [];
+        state.enemyBullets = [];
+        state.waveComplete = true;
+        skipNextWaveAfterBonus = true;
+        interWavePause = true;
+        interWavePauseTimer = 3;
+        startEnergyRefill(state);
+        bus.emit(Events.BONUS_END, {
+          perfect: bonusStagePerfect,
+          escaped: state.bonusStageEnemiesEscaped,
+          score: state.bonusStageScore
+        });
+      }
     }
-    tickEndOverlay(dt);
 
     updateScreenShake(dt);
 
@@ -211,11 +260,16 @@ export function createPlayScene({ menuController, onGameOver }) {
       y: state.player.y
     };
 
+    // Preserve the original silently-broken comparison: `theme === 'absurd'`
+    // is always false because theme is the theme object, not a string.
+    // The spec defers fixing this to Phase 2A.
+    const isAbsurd = (theme === 'absurd');
+
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const enemy = state.enemies[i];
       updateEnemy(enemy, dt, playerPos);
 
-      if (theme && theme.name.toLowerCase().includes('absurd') && Math.random() < 0.3) {
+      if (isAbsurd && Math.random() < 0.3) {
         state.particles.push(createTrailParticle(
           enemy.x + enemy.width / 2,
           enemy.y + enemy.height / 2,
@@ -241,7 +295,7 @@ export function createPlayScene({ menuController, onGameOver }) {
       const bullet = state.playerBullets[i];
       updateProjectile(bullet, dt);
 
-      if (theme && theme.name.toLowerCase().includes('absurd') && Math.random() < 0.5) {
+      if (isAbsurd && Math.random() < 0.5) {
         state.particles.push(createTrailParticle(bullet.x, bullet.y, bullet.color));
       }
 
@@ -256,17 +310,32 @@ export function createPlayScene({ menuController, onGameOver }) {
         state.playerBullets.splice(i, 1);
         state.enemies = state.enemies.filter(e => e !== hitEnemy);
         state.enemiesKilled++;
+
         incrementCombo(state);
         const extraLife = addScore(state, hitEnemy.scoreValue);
         if (extraLife) audio.playExtraLife();
+
+        if (isAbsurd) {
+          state.particles.push(...createAbsurdExplosion(hitEnemy.x, hitEnemy.y, hitEnemy.color));
+          triggerScreenShake(4, 0.15);
+        } else {
+          state.particles.push(...createExplosion(hitEnemy.x, hitEnemy.y, hitEnemy.color));
+          triggerScreenShake(2, 0.1);
+        }
+        audio.playEnemyExplode();
+
         bus.emit(Events.ENEMY_KILLED, {
           enemy: hitEnemy,
           scoreValue: hitEnemy.scoreValue,
           comboAfter: state.combo
         });
+        bus.emit(Events.COMBO_INCREMENT, {
+          combo: state.combo,
+          multiplier: state.comboMultiplier
+        });
 
-        const drop = maybeCreatePowerUpDrop(hitEnemy);
-        if (drop) state.powerUps.push(drop);
+        const powerUpDrop = maybeCreatePowerUpDrop(hitEnemy.x, hitEnemy.y);
+        if (powerUpDrop) state.powerUps.push(powerUpDrop);
       }
     }
 
@@ -275,36 +344,10 @@ export function createPlayScene({ menuController, onGameOver }) {
       updateProjectile(bullet, dt);
       if (isOffScreen(bullet)) {
         state.enemyBullets.splice(i, 1);
-        continue;
-      }
-      const playerHitbox = getPlayerHitbox(state.player);
-      if (checkPlayerBulletCollision(bullet, playerHitbox, state)) {
-        state.enemyBullets.splice(i, 1);
-        if (!hasPowerUp(state, 'shield')) {
-          const gameOver = hitPlayer(state);
-          if (gameOver) {
-            bus.emit(Events.PLAYER_DIED, { player: state.player });
-            onGameOver(ctx);
-            return;
-          }
-          handlePlayerDeath(ctx);
-          return;
-        }
       }
     }
 
-    if (checkPlayerEnemyCollision(state.player, state.enemies, state)) {
-      if (!hasPowerUp(state, 'shield')) {
-        const gameOver = hitPlayer(state);
-        if (gameOver) {
-          bus.emit(Events.PLAYER_DIED, { player: state.player });
-          onGameOver(ctx);
-          return;
-        }
-        handlePlayerDeath(ctx);
-        return;
-      }
-    }
+    updateParticles(state.particles, dt);
 
     for (let i = state.powerUps.length - 1; i >= 0; i--) {
       const powerUp = state.powerUps[i];
@@ -314,47 +357,147 @@ export function createPlayScene({ menuController, onGameOver }) {
         continue;
       }
       if (checkPlayerPowerUpCollision(state.player, powerUp)) {
-        applyPowerUp(state, powerUp);
         state.powerUps.splice(i, 1);
-        bus.emit(Events.POWERUP_PICKUP, { kind: powerUp.kind });
+        applyPowerUp(state, powerUp);
+        audio.playPowerUp();
+        bus.emit(Events.POWERUP_PICKUP, { kind: powerUp.type });
       }
     }
-    updateActivePowerUps(state, dt);
 
-    updateParticles(state.particles, dt);
-    updateEnergyAnimation(state, dt);
+    updateActivePowerUps(state);
 
-    if (state.currentWave && state.enemiesKilled >= state.currentWave.requiredKills && !state.waveComplete) {
-      state.waveComplete = true;
-      state.waveBonus = state.perfectWave ? 1000 : 500;
-      addScore(state, state.waveBonus);
-      bus.emit(Events.WAVE_COMPLETE, { wave: state.currentWave });
-      startEnergyRefill(state);
+    const hasShield = hasPowerUp(state, 'shield');
+    const playerHitbox = getPlayerHitbox(state.player);
+
+    if (hasShield && !state.player.isInvincible) {
+      const hitByEnemy = checkPlayerEnemyCollision(playerHitbox, state.enemies);
+      if (hitByEnemy) {
+        state.enemies = state.enemies.filter(e => e !== hitByEnemy);
+        state.enemiesKilled++;
+
+        const extraLife = addScore(state, hitByEnemy.scoreValue);
+        if (extraLife) audio.playExtraLife();
+
+        if (isAbsurd) {
+          state.particles.push(...createAbsurdExplosion(hitByEnemy.x, hitByEnemy.y, hitByEnemy.color));
+          triggerScreenShake(3, 0.12);
+        } else {
+          state.particles.push(...createExplosion(hitByEnemy.x, hitByEnemy.y, hitByEnemy.color));
+          triggerScreenShake(2, 0.08);
+        }
+        audio.playEnemyExplode();
+
+        bus.emit(Events.ENEMY_KILLED, {
+          enemy: hitByEnemy,
+          scoreValue: hitByEnemy.scoreValue,
+          comboAfter: state.combo
+        });
+      }
+    } else if (!state.player.isInvincible && !hasShield) {
+      const hitByEnemy = checkPlayerEnemyCollision(playerHitbox, state.enemies);
+      if (hitByEnemy) {
+        state.enemies = state.enemies.filter(e => e !== hitByEnemy);
+        hitPlayer(state.player);
+
+        state.particles.push(...createPlayerExplosion(state.player.x + 16, state.player.y + 12, isAbsurd));
+        if (isAbsurd) {
+          triggerScreenShake(8, 0.3);
+        } else {
+          triggerScreenShake(5, 0.2);
+        }
+
+        bus.emit(Events.PLAYER_HIT, { player: state.player });
+
+        const gameOver = loseLife(state);
+        if (gameOver) {
+          bus.emit(Events.PLAYER_DIED, { player: state.player });
+          onGameOver(ctx);
+        } else {
+          handlePlayerDeath(ctx);
+        }
+        return;
+      }
+
+      const hitByBullet = checkPlayerBulletCollision(playerHitbox, state.enemyBullets);
+      if (hitByBullet) {
+        state.enemyBullets = state.enemyBullets.filter(b => b !== hitByBullet);
+        hitPlayer(state.player);
+
+        state.particles.push(...createPlayerExplosion(state.player.x + 16, state.player.y + 12, isAbsurd));
+        if (isAbsurd) {
+          triggerScreenShake(8, 0.3);
+        } else {
+          triggerScreenShake(5, 0.2);
+        }
+
+        bus.emit(Events.PLAYER_HIT, { player: state.player });
+
+        const gameOver = loseLife(state);
+        if (gameOver) {
+          bus.emit(Events.PLAYER_DIED, { player: state.player });
+          onGameOver(ctx);
+        } else {
+          handlePlayerDeath(ctx);
+        }
+        return;
+      }
+    }
+
+    // Wave completion: requires kill count AND screen cleared AND not already in inter-wave
+    if (state.waveComplete && state.enemies.length === 0 && !interWavePause) {
       interWavePause = true;
-      interWavePauseTimer = 3;
-      waveCompleteTimer = 3;
+      interWavePauseTimer = 3.0;
+      waveCompleteTimer = 2.5;
       waveCompleteAlpha = 1;
+      startEnergyRefill(state);
+      if (state.energyBonus > 0) {
+        audio.playEnergyBonus();
+      }
+      bus.emit(Events.WAVE_COMPLETE, { wave: state.currentWave });
     }
 
     if (interWavePause) {
       interWavePauseTimer -= dt;
+
+      const animCompleted = updateEnergyAnimation(state, dt);
+      if (animCompleted) {
+        audio.playEnergyRefill();
+      }
+
       if (interWavePauseTimer <= 0) {
         interWavePause = false;
-        if (consumeSkipNextWave()) {
+
+        if (!skipNextWaveAfterBonus) {
           nextWave(state);
-        } else if (shouldTriggerBonusStage(state)) {
-          nextWave(state);
-          beginBonusWave(ctx);
         } else {
-          nextWave(state);
+          state.enemiesKilled = 0;
+          state.waveComplete = false;
+          state.perfectWave = true;
+          state.enemiesSpawned = 0;
+          state.spawnComplete = false;
+          state.enemies = [];
+          state.enemyBullets = [];
+          resetCombo(state);
+          skipNextWaveAfterBonus = false;
         }
-        const themeName = theme && theme.name.toLowerCase().includes('absurd') ? 'absurd' : '';
-        if (!state.bonusStageActive) {
+
+        ctx.adjustedConfig = getAdjustedConfig(state.difficulty, state.level);
+
+        if (shouldTriggerBonusStage(state)) {
+          startBonusStage(state);
+          beginBonusWave(ctx);
+          bonusStageAnnouncementTimer = 3;
+          bonusStageAnnouncementAlpha = 1;
+          audio.playWaveStart();
+          bus.emit(Events.BONUS_START, { level: state.level + 1 });
+        } else {
+          const themeName = theme && theme.name && theme.name.toLowerCase().includes('absurd') ? 'absurd' : '';
           startWave(state, ctx.adjustedConfig, themeName);
+          waveAnnouncementTimer = 2;
+          waveAnnouncementAlpha = 1;
+          audio.playWaveStart();
+          bus.emit(Events.WAVE_START, { wave: state.currentWave });
         }
-        waveAnnouncementTimer = 2;
-        waveAnnouncementAlpha = 1;
-        bus.emit(Events.WAVE_START, { wave: state.currentWave });
       }
     }
 
@@ -362,9 +505,20 @@ export function createPlayScene({ menuController, onGameOver }) {
       waveAnnouncementTimer -= dt;
       waveAnnouncementAlpha = Math.max(0, waveAnnouncementTimer / 2);
     }
+
     if (waveCompleteTimer > 0) {
       waveCompleteTimer -= dt;
-      waveCompleteAlpha = Math.max(0, waveCompleteTimer / 3);
+      waveCompleteAlpha = Math.max(0, waveCompleteTimer / 2);
+    }
+
+    if (bonusStageAnnouncementTimer > 0) {
+      bonusStageAnnouncementTimer -= dt;
+      bonusStageAnnouncementAlpha = Math.max(0, bonusStageAnnouncementTimer / 3);
+    }
+
+    if (bonusStageEndTimer > 0) {
+      bonusStageEndTimer -= dt;
+      bonusStageEndAlpha = Math.max(0, bonusStageEndTimer / 3);
     }
   }
 
@@ -401,15 +555,19 @@ export function createPlayScene({ menuController, onGameOver }) {
         drawWaveComplete(g, state.waveBonus, state.energyBonus, waveCompleteAlpha);
       }
 
-      drawBonusAnnouncement(g, state.level + 1);
+      if (bonusStageAnnouncementAlpha > 0) {
+        drawBonusAnnouncement(g, state.level + 1, bonusStageAnnouncementAlpha);
+      }
       if (state.bonusStageActive) {
         drawBonusTimer(g, state.bonusStageTimer, state.level + 1);
       }
-      drawBonusEnd(g, state.bonusStageEnemiesEscaped);
+      if (bonusStageEndAlpha > 0) {
+        drawBonusEnd(g, bonusStagePerfect, state.bonusStageEnemiesEscaped, bonusStageEndAlpha);
+      }
     }
 
     g.restore();
   }
 
-  return { update, render };
+  return { enter, update, render };
 }

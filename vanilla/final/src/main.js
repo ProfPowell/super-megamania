@@ -33,6 +33,7 @@ import { createAudioManager } from './audio/audioManager.js';
 import { loadThemeImages } from './assets/assetLoader.js';
 import { getTheme } from './assets/themes.js';
 import { createEventBus } from './app/eventBus.js';
+import { Events } from './app/events.js';
 import { createContext } from './app/context.js';
 import { createSceneController } from './scenes/sceneController.js';
 import { createMenuScene } from './scenes/menuScene.js';
@@ -127,6 +128,9 @@ function startGame() {
 
   const themeName = ctx.theme && ctx.theme.name.toLowerCase().includes('absurd') ? 'absurd' : '';
   startWave(ctx.state, ctx.adjustedConfig, themeName);
+
+  ctx.audio.playWaveStart();
+  ctx.bus.emit(Events.WAVE_START, { wave: ctx.state.currentWave });
 
   ctx.audio.startMusic();
   ctx.state.currentState = GameStates.PLAYING;

@@ -1,44 +1,24 @@
 import {
-  startBonusStage,
-  updateBonusStage,
-  bonusStageEnemyEscaped,
-  endBonusStage
+  bonusStageEnemyEscaped
 } from './_bonusStateMutations.js';
 import { createEnemy } from '../entities/enemyExpanded.js';
-import { startEnergyRefill } from '../state/gameState.js';
 import { Events } from '../app/events.js';
 
 /**
- * Bonus-stage controller. Owns spawning, tick, end, and the three
- * on-screen overlays (announcement / timer / end). Re-exports the
- * pure mutators from _bonusStateMutations.js so callers only import
- * from one module.
+ * Bonus-stage helpers used by playScene. All per-frame timer state
+ * (announcement alpha, end alpha, perfect flag, skip-next-wave) lives
+ * in playScene's closures — bonusScene is stateless drawing + spawn
+ * helpers + an escape-reporting hook.
  *
- * Side-effect contract: emits BONUS_START on begin, BONUS_END on end
- * with payload { perfect, escaped, score }, and ENEMY_ESCAPED whenever
- * an enemy leaves the play area during the bonus stage.
+ * Side-effect contract: emits ENEMY_ESCAPED whenever an enemy leaves
+ * the play area during the bonus stage. BONUS_START / BONUS_END are
+ * emitted from playScene at the start/end transitions.
  */
 
 export { bonusStageEnemyEscaped };
 
-let announceTimer = 0;
-let announceAlpha = 0;
-let endTimer = 0;
-let endAlpha = 0;
-let endPerfect = false;
-let skipNextWaveAfterBonus = false;
-
-export function shouldSkipNextWave() {
-  return skipNextWaveAfterBonus;
-}
-export function consumeSkipNextWave() {
-  const v = skipNextWaveAfterBonus;
-  skipNextWaveAfterBonus = false;
-  return v;
-}
-
 export function beginBonusWave(ctx) {
-  const { state, themeImages, adjustedConfig, bus } = ctx;
+  const { state, themeImages, adjustedConfig } = ctx;
   let enemyKeys = Object.keys(themeImages);
   if (enemyKeys.length === 0) enemyKeys = ['wave1'];
 
@@ -64,8 +44,6 @@ export function beginBonusWave(ctx) {
   state.perfectWave = true;
   state.waveFormationComplete = true;
 
-  startBonusStage(state);
-
   // Initial batch of 5 to make the start feel decisive.
   for (let i = 0; i < 5 && state.enemiesSpawned < state.currentWave.count; i++) {
     const key = enemyKeys[Math.floor(Math.random() * enemyKeys.length)];
@@ -79,10 +57,6 @@ export function beginBonusWave(ctx) {
     state.enemies.push(enemy);
     state.enemiesSpawned++;
   }
-
-  announceTimer = 2;
-  announceAlpha = 1;
-  bus.emit(Events.BONUS_START, { level: state.level + 1 });
 }
 
 export function updateBonusSpawning(ctx, dt) {
@@ -112,45 +86,6 @@ export function updateBonusSpawning(ctx, dt) {
   state.lastEnemySpawnTime = state.gameTime;
 }
 
-/**
- * Per-frame tick during the bonus stage. Returns true if the stage
- * just ended this frame (so playScene can pause for the end overlay).
- */
-export function tickBonus(ctx, dt) {
-  const { state, bus } = ctx;
-  if (!state.bonusStageActive) return false;
-
-  announceTimer = Math.max(0, announceTimer - dt);
-  announceAlpha = announceTimer > 0 ? Math.min(1, announceTimer / 2) : 0;
-
-  const ended = updateBonusStage(state, dt);
-  if (!ended) return false;
-
-  endPerfect = state.bonusStageEnemiesEscaped === 0;
-  endTimer = 3;
-  endAlpha = 1;
-  skipNextWaveAfterBonus = true;
-  state.waveComplete = true;
-  state.enemies = [];
-  state.enemyBullets = [];
-  startEnergyRefill(state);
-
-  bus.emit(Events.BONUS_END, {
-    perfect: endPerfect,
-    escaped: state.bonusStageEnemiesEscaped,
-    score: state.bonusStageScore
-  });
-
-  return true;
-}
-
-export function tickEndOverlay(dt) {
-  if (endTimer > 0) {
-    endTimer = Math.max(0, endTimer - dt);
-    endAlpha = endTimer / 3;
-  }
-}
-
 export function reportEscape(ctx) {
   bonusStageEnemyEscaped(ctx.state);
   if (ctx.state.bonusStageActive) {
@@ -158,10 +93,9 @@ export function reportEscape(ctx) {
   }
 }
 
-export function drawAnnouncement(g, level) {
-  if (announceAlpha <= 0) return;
+export function drawAnnouncement(g, level, alpha) {
   g.save();
-  g.globalAlpha = announceAlpha;
+  g.globalAlpha = alpha;
   g.fillStyle = 'rgba(0, 0, 0, 0.9)';
   g.fillRect(100, 160, 440, 100);
   g.strokeStyle = '#ff00ff';
@@ -198,22 +132,21 @@ export function drawTimer(g, timeLeft, level) {
   g.restore();
 }
 
-export function drawEnd(g, escaped) {
-  if (endAlpha <= 0) return;
+export function drawEnd(g, perfect, escaped, alpha) {
   g.save();
-  g.globalAlpha = endAlpha;
+  g.globalAlpha = alpha;
   g.font = "20px 'Press Start 2P', monospace";
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillStyle = 'rgba(0, 0, 0, 0.9)';
   g.fillRect(100, 160, 440, 120);
-  const borderColor = endPerfect ? '#00ff00' : '#ffff00';
+  const borderColor = perfect ? '#00ff00' : '#ffff00';
   g.strokeStyle = borderColor;
   g.lineWidth = 4;
   g.strokeRect(100, 160, 440, 120);
   g.fillStyle = borderColor;
   g.fillText('BONUS STAGE COMPLETE!', 320, 195);
-  if (endPerfect) {
+  if (perfect) {
     g.font = "24px 'Press Start 2P', monospace";
     g.fillStyle = '#00ff00';
     g.fillText('PERFECT! +1000', 320, 240);
