@@ -167,6 +167,8 @@ export function createPlayScene({ menuController, onGameOver }) {
 
   function update(ctx, dt) {
     const { state, audio, input, bus, theme } = ctx;
+    if (state.currentState !== GameStates.PLAYING) return;
+
     // PHASE 2A: hitstop — freeze gameplay for N seconds after a big hit.
     // The reactor sets state.hitstopTimer on ENEMY_KILLED/PLAYER_HIT.
     // Real dt still ticks the hitstop timer itself, but the rest of the
@@ -177,12 +179,18 @@ export function createPlayScene({ menuController, onGameOver }) {
       updateScreenShake(dt);
       return;
     }
-    if (state.currentState !== GameStates.PLAYING) return;
 
     state.gameTime += dt;
 
     updateBackground(ctx.backgroundElements, dt, state.gameTime);
+    // PHASE 2A: combo break flash should fire on timeout too, not just on
+    // off-screen miss. updateCombo zeros state.combo when its timer expires;
+    // detect that drop here and emit COMBO_BROKEN.
+    const _comboBefore = state.combo;
     updateCombo(state, dt);
+    if (_comboBefore > 0 && state.combo === 0) {
+      bus.emit(Events.COMBO_BROKEN, {});
+    }
 
     // BONUS STAGE timer tick
     if (state.bonusStageActive) {
@@ -190,8 +198,11 @@ export function createPlayScene({ menuController, onGameOver }) {
       if (bonusEnded) {
         bonusStagePerfect = state.bonusStageEnemiesEscaped === 0;
         // PHASE 2A: begin drain animation; enemies float upward + sparkle
-        // for 0.4s before being cleared. End-overlay timer starts AFTER the drain.
+        // for 0.4s before being cleared. End-overlay timer starts AFTER
+        // the drain. Clear enemy bullets immediately so player can't take
+        // a stale hit during the visual-only drain window.
         state.juiceFx.bonusDrainUntil = state.gameTime + 0.4;
+        state.enemyBullets = [];
         bus.emit(Events.BONUS_END, {
           perfect: bonusStagePerfect,
           escaped: state.bonusStageEnemiesEscaped,
@@ -200,7 +211,8 @@ export function createPlayScene({ menuController, onGameOver }) {
       }
     }
 
-    // PHASE 2A: bonus drain animation tick.
+    // PHASE 2A: bonus drain visual-only mode. Gameplay is paused; only
+    // the drain motion + sparkle particles + screen shake update.
     if (state.juiceFx.bonusDrainUntil > 0) {
       if (state.gameTime < state.juiceFx.bonusDrainUntil) {
         for (const enemy of state.enemies) {
@@ -212,19 +224,20 @@ export function createPlayScene({ menuController, onGameOver }) {
             ));
           }
         }
-      } else {
-        // Drain complete: now do the original end-of-bonus clear.
-        state.juiceFx.bonusDrainUntil = 0;
-        bonusStageEndTimer = 3;
-        bonusStageEndAlpha = 1;
-        state.enemies = [];
-        state.enemyBullets = [];
-        state.waveComplete = true;
-        skipNextWaveAfterBonus = true;
-        interWavePause = true;
-        interWavePauseTimer = 3;
-        startEnergyRefill(state);
+        updateParticles(state.particles, dt);
+        updateScreenShake(dt);
+        return;
       }
+      // Drain complete: clean up and transition to inter-wave end overlay.
+      state.juiceFx.bonusDrainUntil = 0;
+      bonusStageEndTimer = 3;
+      bonusStageEndAlpha = 1;
+      state.enemies = [];
+      state.waveComplete = true;
+      skipNextWaveAfterBonus = true;
+      interWavePause = true;
+      interWavePauseTimer = 3;
+      startEnergyRefill(state);
     }
 
     updateScreenShake(dt);

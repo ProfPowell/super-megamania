@@ -682,9 +682,17 @@ body {
 
 /* Phase 2A: chromatic aberration applied as a brief class toggle on the
    canvas. Uses two semi-transparent shadow offsets to fake the RGB-split
-   effect without an off-screen canvas. */
+   effect without an off-screen canvas. Both selectors below must win
+   over `#game-container.crt-mode #gameCanvas` (specificity 0,2,1,0). */
 #gameCanvas.chroma-aberration {
   filter:
+    drop-shadow(2px 0 0 rgba(255, 0, 0, 0.6))
+    drop-shadow(-2px 0 0 rgba(0, 255, 255, 0.6));
+}
+#game-container.crt-mode #gameCanvas.chroma-aberration {
+  filter:
+    contrast(1.1)
+    brightness(1.05)
     drop-shadow(2px 0 0 rgba(255, 0, 0, 0.6))
     drop-shadow(-2px 0 0 rgba(0, 255, 255, 0.6));
 }
