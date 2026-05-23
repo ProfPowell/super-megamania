@@ -8,7 +8,7 @@
  * gameplay reactions (hitstop, screen shake, audio) drift out of sync
  * with the frame that caused them.
  */
-export function createEventBus() {
+export function createEventBus({ onError = console.error } = {}) {
   const handlers = new Map(); // event name -> array of handler functions
 
   function on(event, handler) {
@@ -38,7 +38,7 @@ export function createEventBus() {
       try {
         handler(payload);
       } catch (err) {
-        console.error(`[eventBus] handler for "${event}" threw:`, err);
+        onError(`[eventBus] handler for "${event}" threw:`, err);
       }
     }
   }

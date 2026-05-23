@@ -40,7 +40,7 @@ test('eventBus: emit with no subscribers does not throw', () => {
 });
 
 test('eventBus: handler that throws does not prevent later handlers', () => {
-  const bus = createEventBus();
+  const bus = createEventBus({ onError: () => {} });
   const calls = [];
   bus.on('FOO', () => { throw new Error('boom'); });
   bus.on('FOO', () => calls.push('ran'));
@@ -57,4 +57,17 @@ test('eventBus: on returns an unsubscribe function', () => {
   unsub();
   bus.emit('FOO');
   assert.equal(n, 1);
+});
+
+test('eventBus: handler registered during emit does not fire in the same emit', () => {
+  const bus = createEventBus();
+  const calls = [];
+  bus.on('FOO', () => {
+    calls.push('original');
+    bus.on('FOO', () => calls.push('late'));
+  });
+  bus.emit('FOO');
+  assert.deepEqual(calls, ['original']);
+  bus.emit('FOO');
+  assert.deepEqual(calls, ['original', 'original', 'late']);
 });
