@@ -1,33 +1,104 @@
 import { Events } from '../app/events.js';
+import {
+  createBigExplosion,
+  createComboFlash,
+  createPowerupBurst
+} from './particleSystem.js';
+import { triggerScreenShake } from './screenShake.js';
+import { triggerChromaticAberration } from './postEffects.js';
 
 /**
- * Reactor scaffold. In Phase 1, subscribers are no-ops because the
- * gameplay code in playScene.js still owns every audio/shake/particle
- * call inline — this keeps the "zero behavior change" Phase 1 contract.
+ * Phase 2A reactor: layers extra juice on top of the inline calls that
+ * playScene already makes. Inline behavior is preserved; reactor adds:
  *
- * Phase 2A populates these handlers (with hitstop, tiered shake,
- * particle profiles, chromatic aberration, etc.) and removes the
- * matching inline calls from playScene. Until then, the bus emits
- * from scenes flow through here harmlessly, proving the wiring works.
+ * - Hitstop frame-freeze on ENEMY_KILLED (scaled by scoreValue)
+ * - Tiered screen-shake escalation (triggerScreenShake uses Math.max, so
+ *   this never reduces an existing shake; it only escalates for big hits)
+ * - Big-combo extra explosion particles when comboAfter >= 10
+ * - Combo milestone ring every 5-combo
+ * - Powerup pickup burst at the pickup site
+ * - Chromatic aberration on PLAYER_HIT and on perfect BONUS_END (Absurd only)
+ * - Combo HUD pop / break animation timers
  *
- * The reactor holds NO state of its own — Phase 2A reactors should
- * read from the ctx passed at subscribe time and the event payload
- * at emit time.
+ * Pure subscriber; holds no module state. All effect state lives on
+ * state.hitstopTimer and state.juiceFx.
  */
+
+const HITSTOP_MIN = 0.04;  // 40ms — chaff kill
+const HITSTOP_MAX = 0.08;  // 80ms — high-value kill
+const CHROMA_MS = 100;     // duration of chromatic-aberration flash
+
+function isAbsurd(theme) {
+  return !!(theme && theme.name && theme.name.toLowerCase().includes('absurd'));
+}
+
+function hitstopForScore(scoreValue) {
+  // 100 → 40ms; 500+ → 80ms; linear between.
+  const t = Math.min(1, Math.max(0, (scoreValue - 100) / 400));
+  return HITSTOP_MIN + (HITSTOP_MAX - HITSTOP_MIN) * t;
+}
+
 export function installJuiceReactor(ctx) {
   const { bus } = ctx;
-  const unsubs = [
-    bus.on(Events.WAVE_START,        () => { /* Phase 2A: wave-start telegraph */ }),
-    bus.on(Events.WAVE_COMPLETE,     () => { /* Phase 2A: wave-clear sparkle */ }),
-    bus.on(Events.BONUS_START,       () => { /* Phase 2A: bonus-start flourish */ }),
-    bus.on(Events.BONUS_END,         () => { /* Phase 2A: perfect-bonus kaboom */ }),
-    bus.on(Events.ENEMY_KILLED,      () => { /* Phase 2A: hitstop, tiered shake, big-combo profile */ }),
-    bus.on(Events.ENEMY_ESCAPED,     () => { /* Phase 2A reserved */ }),
-    bus.on(Events.PLAYER_HIT,        () => { /* Phase 2A: chromatic aberration, hitstop */ }),
-    bus.on(Events.PLAYER_DIED,       () => { /* Phase 2A reserved */ }),
-    bus.on(Events.POWERUP_PICKUP,    () => { /* Phase 2A: powerup burst */ }),
-    bus.on(Events.COMBO_INCREMENT,   () => { /* Phase 2A: combo HUD juice */ }),
-    bus.on(Events.COMBO_BROKEN,      () => { /* Phase 2A: combo break flash */ })
-  ];
+  const unsubs = [];
+
+  unsubs.push(bus.on(Events.ENEMY_KILLED, (payload) => {
+    const { enemy, scoreValue, comboAfter } = payload;
+    ctx.state.hitstopTimer = Math.max(ctx.state.hitstopTimer, hitstopForScore(scoreValue));
+
+    if (scoreValue >= 500) {
+      triggerScreenShake(6, 0.25);
+    } else if (comboAfter >= 10) {
+      triggerScreenShake(5, 0.2);
+    }
+
+    if (comboAfter >= 10) {
+      const cx = enemy.x + enemy.width / 2;
+      const cy = enemy.y + enemy.height / 2;
+      ctx.state.particles.push(...createBigExplosion(cx, cy, enemy.color));
+    }
+    if (comboAfter > 0 && comboAfter % 5 === 0) {
+      const cx = enemy.x + enemy.width / 2;
+      const cy = enemy.y + enemy.height / 2;
+      ctx.state.particles.push(...createComboFlash(cx, cy, comboAfter));
+    }
+  }));
+
+  unsubs.push(bus.on(Events.POWERUP_PICKUP, (payload) => {
+    const { kind, x, y } = payload;
+    if (typeof x === 'number' && typeof y === 'number') {
+      ctx.state.particles.push(...createPowerupBurst(x, y, kind));
+    }
+  }));
+
+  unsubs.push(bus.on(Events.PLAYER_HIT, () => {
+    if (isAbsurd(ctx.theme)) {
+      ctx.state.juiceFx.chromaUntil = Date.now() + CHROMA_MS;
+      triggerChromaticAberration(CHROMA_MS);
+    }
+  }));
+
+  unsubs.push(bus.on(Events.BONUS_END, (payload) => {
+    if (payload && payload.perfect && isAbsurd(ctx.theme)) {
+      ctx.state.juiceFx.chromaUntil = Date.now() + CHROMA_MS;
+      triggerChromaticAberration(CHROMA_MS);
+    }
+  }));
+
+  unsubs.push(bus.on(Events.COMBO_INCREMENT, () => {
+    ctx.state.juiceFx.comboPopUntil = Date.now() + 200;
+  }));
+
+  unsubs.push(bus.on(Events.COMBO_BROKEN, () => {
+    ctx.state.juiceFx.comboBreakUntil = Date.now() + 400;
+  }));
+
+  // Other events stay reserved for later phases.
+  unsubs.push(bus.on(Events.WAVE_START,      () => {}));
+  unsubs.push(bus.on(Events.WAVE_COMPLETE,   () => {}));
+  unsubs.push(bus.on(Events.BONUS_START,     () => {}));
+  unsubs.push(bus.on(Events.ENEMY_ESCAPED,   () => {}));
+  unsubs.push(bus.on(Events.PLAYER_DIED,     () => {}));
+
   return () => unsubs.forEach(u => u());
 }
