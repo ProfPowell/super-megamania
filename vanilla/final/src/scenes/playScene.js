@@ -52,15 +52,11 @@ import {
 } from '../systems/collision.js';
 import { startWave, updateWaveManager } from '../systems/waveManager.js';
 import {
-  createExplosion,
-  createAbsurdExplosion,
-  createPlayerExplosion,
   createTrailParticle,
   updateParticles,
   drawParticles
 } from '../systems/particleSystem.js';
 import {
-  triggerScreenShake,
   updateScreenShake,
   applyScreenShake
 } from '../systems/screenShake.js';
@@ -108,7 +104,7 @@ export function createPlayScene({ menuController, onGameOver }) {
   let pausePressed = false;
 
   function handlePlayerDeath(ctx) {
-    const { state, adjustedConfig, audio, theme } = ctx;
+    const { state, adjustedConfig, audio, theme, bus } = ctx;
     audio.playPlayerDeath();
 
     if (state.waveComplete) {
@@ -127,7 +123,7 @@ export function createPlayScene({ menuController, onGameOver }) {
     startWave(state, adjustedConfig, themeName);
     waveAnnouncementTimer = 2;
     waveAnnouncementAlpha = 1;
-    audio.playWaveStart();
+    bus.emit(Events.WAVE_START, { wave: state.currentWave });
   }
 
   function update(ctx, dt) {
@@ -263,22 +259,11 @@ export function createPlayScene({ menuController, onGameOver }) {
         incrementCombo(state);
         const extraLife = addScore(state, hitEnemy.scoreValue);
         if (extraLife) audio.playExtraLife();
-
-        if (theme && theme.name.toLowerCase().includes('absurd')) {
-          state.particles.push(...createAbsurdExplosion(
-            hitEnemy.x + hitEnemy.width / 2,
-            hitEnemy.y + hitEnemy.height / 2,
-            hitEnemy.color
-          ));
-          triggerScreenShake(6, 0.2);
-        } else {
-          state.particles.push(...createExplosion(
-            hitEnemy.x + hitEnemy.width / 2,
-            hitEnemy.y + hitEnemy.height / 2,
-            hitEnemy.color
-          ));
-        }
-        audio.playEnemyExplode();
+        bus.emit(Events.ENEMY_KILLED, {
+          enemy: hitEnemy,
+          scoreValue: hitEnemy.scoreValue,
+          comboAfter: state.combo
+        });
 
         const drop = maybeCreatePowerUpDrop(hitEnemy);
         if (drop) state.powerUps.push(drop);
@@ -298,10 +283,7 @@ export function createPlayScene({ menuController, onGameOver }) {
         if (!hasPowerUp(state, 'shield')) {
           const gameOver = hitPlayer(state);
           if (gameOver) {
-            state.particles.push(...createPlayerExplosion(
-              state.player.x + state.player.width / 2,
-              state.player.y + state.player.height / 2
-            ));
+            bus.emit(Events.PLAYER_DIED, { player: state.player });
             onGameOver(ctx);
             return;
           }
@@ -315,10 +297,7 @@ export function createPlayScene({ menuController, onGameOver }) {
       if (!hasPowerUp(state, 'shield')) {
         const gameOver = hitPlayer(state);
         if (gameOver) {
-          state.particles.push(...createPlayerExplosion(
-            state.player.x + state.player.width / 2,
-            state.player.y + state.player.height / 2
-          ));
+          bus.emit(Events.PLAYER_DIED, { player: state.player });
           onGameOver(ctx);
           return;
         }
@@ -337,7 +316,7 @@ export function createPlayScene({ menuController, onGameOver }) {
       if (checkPlayerPowerUpCollision(state.player, powerUp)) {
         applyPowerUp(state, powerUp);
         state.powerUps.splice(i, 1);
-        audio.playPowerUp();
+        bus.emit(Events.POWERUP_PICKUP, { kind: powerUp.kind });
       }
     }
     updateActivePowerUps(state, dt);
@@ -349,7 +328,7 @@ export function createPlayScene({ menuController, onGameOver }) {
       state.waveComplete = true;
       state.waveBonus = state.perfectWave ? 1000 : 500;
       addScore(state, state.waveBonus);
-      audio.playWaveComplete();
+      bus.emit(Events.WAVE_COMPLETE, { wave: state.currentWave });
       startEnergyRefill(state);
       interWavePause = true;
       interWavePauseTimer = 3;
@@ -375,7 +354,7 @@ export function createPlayScene({ menuController, onGameOver }) {
         }
         waveAnnouncementTimer = 2;
         waveAnnouncementAlpha = 1;
-        audio.playWaveStart();
+        bus.emit(Events.WAVE_START, { wave: state.currentWave });
       }
     }
 
