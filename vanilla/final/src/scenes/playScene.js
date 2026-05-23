@@ -50,7 +50,7 @@ import {
   checkPlayerEnemyCollision,
   checkPlayerBulletCollision
 } from '../systems/collision.js';
-import { startWave, updateWaveManager } from '../systems/waveManager.js';
+import { startWave, updateWaveManager, previewFormation } from '../systems/waveManager.js';
 import {
   createExplosion,
   createAbsurdExplosion,
@@ -156,6 +156,11 @@ export function createPlayScene({ menuController, onGameOver }) {
     startWave(state, ctx.adjustedConfig, themeName);
     waveAnnouncementTimer = 2;
     waveAnnouncementAlpha = 1;
+    // PHASE 2A: wave-start telegraph
+    state.juiceFx.waveTelegraphGhosts = createWaveTelegraphGhosts(
+      previewFormation(state.currentWave, 8)
+    );
+    state.juiceFx.waveTelegraphUntil = state.gameTime + 0.6;
     audio.playWaveStart();
     bus.emit(Events.WAVE_START, { wave: state.currentWave });
   }
@@ -533,6 +538,11 @@ export function createPlayScene({ menuController, onGameOver }) {
           startWave(state, ctx.adjustedConfig, themeName);
           waveAnnouncementTimer = 2;
           waveAnnouncementAlpha = 1;
+          // PHASE 2A: wave-start telegraph
+          state.juiceFx.waveTelegraphGhosts = createWaveTelegraphGhosts(
+            previewFormation(state.currentWave, 8)
+          );
+          state.juiceFx.waveTelegraphUntil = state.gameTime + 0.6;
           audio.playWaveStart();
           bus.emit(Events.WAVE_START, { wave: state.currentWave });
         }
@@ -574,6 +584,21 @@ export function createPlayScene({ menuController, onGameOver }) {
       if (state.player) {
         drawPlayer(g, state.player, ctx.playerImage, state);
       }
+
+      // PHASE 2A: wave-start telegraph ghosts.
+      if (state.gameTime < state.juiceFx.waveTelegraphUntil) {
+        const remaining = (state.juiceFx.waveTelegraphUntil - state.gameTime) / 0.6;
+        for (const ghost of state.juiceFx.waveTelegraphGhosts) {
+          const image = ctx.themeImages[ghost.themeKey];
+          if (image && image.complete) {
+            g.save();
+            g.globalAlpha = ghost.alpha * remaining;
+            g.drawImage(image, ghost.x, ghost.y, 24, 24);
+            g.restore();
+          }
+        }
+      }
+
       for (const enemy of state.enemies) {
         const enemyImage = ctx.themeImages[enemy.themeKey] || null;
         drawEnemy(g, enemy, enemyImage);

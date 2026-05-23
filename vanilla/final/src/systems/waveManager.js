@@ -108,3 +108,25 @@ export function getWaveProgress(state) {
   if (!state.currentWave) return 0;
   return state.enemiesKilled / state.currentWave.requiredKills;
 }
+
+/**
+ * Compute the first `count` spawn positions for a wave config, for use by
+ * the wave-start telegraph in playScene. Pure: no side effects on shared
+ * state. Returns [{ x, y, themeKey }, ...]. Y is overridden to a visible
+ * value (just below the HUD) since createEnemy starts enemies off-screen.
+ */
+export function previewFormation(waveConfig, count = 8) {
+  if (!waveConfig) return [];
+  const n = Math.min(count, waveConfig.count || count);
+  const previews = [];
+  for (let i = 0; i < n; i++) {
+    const enemy = createEnemy(waveConfig, i, 1, 1);
+    previews.push({
+      x: enemy.x,
+      // Show ghosts at a visible y just below the HUD instead of off-screen.
+      y: 80,
+      themeKey: enemy.themeKey
+    });
+  }
+  return previews;
+}
