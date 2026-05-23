@@ -76,7 +76,10 @@ async function init() {
   menuController = createMenuController();
   await loadTheme(settings.theme || 'cats');
 
-  installJuiceReactor(ctx);
+  // ?juice=0 disables all Phase 2A polish for A/B comparison.
+  if (!/[?&]juice=0\b/.test(window.location.search)) {
+    installJuiceReactor(ctx);
+  }
 
   menuScene = createMenuScene();
   playScene = createPlayScene({
