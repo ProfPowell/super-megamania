@@ -270,10 +270,8 @@ export function createPlayScene({ menuController, onGameOver }) {
       y: state.player.y
     };
 
-    // Preserve the original silently-broken comparison: `theme === 'absurd'`
-    // is always false because theme is the theme object, not a string.
-    // The spec defers fixing this to Phase 2A.
-    const isAbsurd = (theme === 'absurd');
+    // PHASE 2A FIX: theme is the theme object; check its name.
+    const isAbsurd = !!(theme && theme.name && theme.name.toLowerCase().includes('absurd'));
 
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const enemy = state.enemies[i];
