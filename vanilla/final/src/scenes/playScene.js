@@ -57,7 +57,9 @@ import {
   createPlayerExplosion,
   createTrailParticle,
   updateParticles,
-  drawParticles
+  drawParticles,
+  createBonusDrainSparkle,
+  createWaveTelegraphGhosts
 } from '../systems/particleSystem.js';
 import {
   triggerScreenShake,
@@ -182,6 +184,32 @@ export function createPlayScene({ menuController, onGameOver }) {
       const bonusEnded = updateBonusStage(state, dt);
       if (bonusEnded) {
         bonusStagePerfect = state.bonusStageEnemiesEscaped === 0;
+        // PHASE 2A: begin drain animation; enemies float upward + sparkle
+        // for 0.4s before being cleared. End-overlay timer starts AFTER the drain.
+        state.juiceFx.bonusDrainUntil = state.gameTime + 0.4;
+        bus.emit(Events.BONUS_END, {
+          perfect: bonusStagePerfect,
+          escaped: state.bonusStageEnemiesEscaped,
+          score: state.bonusStageScore
+        });
+      }
+    }
+
+    // PHASE 2A: bonus drain animation tick.
+    if (state.juiceFx.bonusDrainUntil > 0) {
+      if (state.gameTime < state.juiceFx.bonusDrainUntil) {
+        for (const enemy of state.enemies) {
+          enemy.y -= 600 * dt;
+          if (Math.random() < 0.5) {
+            state.particles.push(...createBonusDrainSparkle(
+              enemy.x + enemy.width / 2,
+              enemy.y + enemy.height / 2
+            ));
+          }
+        }
+      } else {
+        // Drain complete: now do the original end-of-bonus clear.
+        state.juiceFx.bonusDrainUntil = 0;
         bonusStageEndTimer = 3;
         bonusStageEndAlpha = 1;
         state.enemies = [];
@@ -191,11 +219,6 @@ export function createPlayScene({ menuController, onGameOver }) {
         interWavePause = true;
         interWavePauseTimer = 3;
         startEnergyRefill(state);
-        bus.emit(Events.BONUS_END, {
-          perfect: bonusStagePerfect,
-          escaped: state.bonusStageEnemiesEscaped,
-          score: state.bonusStageScore
-        });
       }
     }
 
