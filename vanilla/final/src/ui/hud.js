@@ -92,6 +92,20 @@ export function drawHUD(ctx, state, fps) {
       glowColor = '#ffff00';
     }
 
+    // PHASE 2A: combo HUD juice — pop on grow.
+    const now = Date.now();
+    const fx = state.juiceFx || {};
+    let scale = 1;
+    if (fx.comboPopUntil && now < fx.comboPopUntil) {
+      const t = (fx.comboPopUntil - now) / 200;
+      scale = 1 + 0.25 * t;
+    }
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.scale(scale, scale);
+    ctx.translate(-centerX, -centerY);
+
     // Glow effect
     ctx.shadowColor = glowColor;
     ctx.shadowBlur = 20;
@@ -112,6 +126,20 @@ export function drawHUD(ctx, state, fps) {
     // Reset shadow
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  // PHASE 2A: combo break — red full-screen flash fades over 400ms.
+  // Lives outside the combo>=3 guard because by the time COMBO_BROKEN fires,
+  // state.combo is already 0.
+  const breakFx = state.juiceFx || {};
+  if (breakFx.comboBreakUntil && Date.now() < breakFx.comboBreakUntil) {
+    const breakAlpha = (breakFx.comboBreakUntil - Date.now()) / 400;
+    ctx.save();
+    ctx.globalAlpha = breakAlpha * 0.4; // cap at 40% so it's a flash not an opaque sheet
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.restore();
   }
 }
 
