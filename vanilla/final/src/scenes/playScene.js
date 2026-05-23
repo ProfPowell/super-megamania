@@ -309,7 +309,10 @@ export function createPlayScene({ menuController, onGameOver }) {
 
       if (isOffScreen(bullet)) {
         state.playerBullets.splice(i, 1);
-        if (state.combo > 0) resetCombo(state);
+        if (state.combo > 0) {
+          resetCombo(state);
+          bus.emit(Events.COMBO_BROKEN, {});
+        }
         continue;
       }
 
@@ -368,7 +371,11 @@ export function createPlayScene({ menuController, onGameOver }) {
         state.powerUps.splice(i, 1);
         applyPowerUp(state, powerUp);
         audio.playPowerUp();
-        bus.emit(Events.POWERUP_PICKUP, { kind: powerUp.type });
+        bus.emit(Events.POWERUP_PICKUP, {
+          kind: powerUp.type,
+          x: powerUp.x + (powerUp.width || 0) / 2,
+          y: powerUp.y + (powerUp.height || 0) / 2
+        });
       }
     }
 
