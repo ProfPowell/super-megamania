@@ -160,6 +160,16 @@ export function createPlayScene({ menuController, onGameOver }) {
 
   function update(ctx, dt) {
     const { state, audio, input, bus, theme } = ctx;
+    // PHASE 2A: hitstop — freeze gameplay for N seconds after a big hit.
+    // The reactor sets state.hitstopTimer on ENEMY_KILLED/PLAYER_HIT.
+    // Real dt still ticks the hitstop timer itself, but the rest of the
+    // update sees dt=0 while hitstop is active.
+    if (state.hitstopTimer > 0) {
+      state.hitstopTimer = Math.max(0, state.hitstopTimer - dt);
+      // Still update screen shake during hitstop so the shake doesn't freeze.
+      updateScreenShake(dt);
+      return;
+    }
     if (state.currentState !== GameStates.PLAYING) return;
 
     state.gameTime += dt;
