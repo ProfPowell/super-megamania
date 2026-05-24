@@ -100,7 +100,18 @@ export function createGameState(difficulty = 'normal') {
     bonusStageTimer: 0,          // Time remaining in bonus stage
     bonusStageTimeLimit: 20,     // Time limit for bonus stage (seconds)
     bonusStageEnemiesEscaped: 0, // Number of enemies that escaped
-    bonusStageScore: 0           // Score earned during bonus stage
+    bonusStageScore: 0,          // Score earned during bonus stage
+
+    // PHASE 2A JUICE STATE
+    hitstopTimer: 0,             // seconds remaining of hitstop (frame-freeze)
+    juiceFx: {
+      chromaUntil: 0,            // timestamp in ms; chromatic aberration active while now < chromaUntil
+      comboPopUntil: 0,          // timestamp in ms; combo counter pops while now < comboPopUntil
+      comboBreakUntil: 0,        // timestamp in ms; combo break red flash while now < comboBreakUntil
+      bonusDrainUntil: 0,        // gameTime seconds; bonus-end drain animation while gameTime < bonusDrainUntil
+      waveTelegraphGhosts: [],   // ghost descriptors for wave-start telegraph, drawn while non-empty
+      waveTelegraphUntil: 0      // gameTime seconds; telegraph window
+    }
   };
 }
 
@@ -138,6 +149,16 @@ export function resetGameState(state, difficulty) {
   state.energyDepletionTimer = 0;
   state.enemiesSpawned = 0;
   state.spawnComplete = false;
+
+  state.hitstopTimer = 0;
+  state.juiceFx = {
+    chromaUntil: 0,
+    comboPopUntil: 0,
+    comboBreakUntil: 0,
+    bonusDrainUntil: 0,
+    waveTelegraphGhosts: [],
+    waveTelegraphUntil: 0
+  };
 }
 
 /**

@@ -258,3 +258,106 @@ export function createPlayerExplosion(x, y, absurdMode = false) {
 
   return particles;
 }
+
+/**
+ * Big-combo explosion: ~3x the visual mass of a normal explosion.
+ * Layered on top of the inline createExplosion for high-combo kills.
+ */
+export function createBigExplosion(x, y, color = '#ffff00') {
+  const particles = [];
+  for (let i = 0; i < 32; i++) {
+    const angle = (Math.PI * 2 * i) / 32 + Math.random() * 0.3;
+    const speed = 60 + Math.random() * 180;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 0.6 + Math.random() * 0.4,
+      maxLife: 1.0,
+      color,
+      size: 3 + Math.random() * 3
+    });
+  }
+  return particles;
+}
+
+/**
+ * Combo milestone ring: a radial ring of bright particles.
+ * Fires every 5-combo as a visual milestone.
+ */
+export function createComboFlash(x, y, combo) {
+  const particles = [];
+  const ringSize = 80 + combo * 4;
+  for (let i = 0; i < 16; i++) {
+    const angle = (Math.PI * 2 * i) / 16;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * ringSize,
+      vy: Math.sin(angle) * ringSize,
+      life: 0.3,
+      maxLife: 0.3,
+      color: '#ffffff',
+      size: 2
+    });
+  }
+  return particles;
+}
+
+const POWERUP_COLORS = {
+  shield: '#00ffff',
+  rapidFire: '#ffaa00',
+  spreadShot: '#ff00ff'
+};
+
+/**
+ * Powerup pickup burst — themed by powerup kind.
+ */
+export function createPowerupBurst(x, y, kind) {
+  const color = POWERUP_COLORS[kind] || '#ffffff';
+  const particles = [];
+  for (let i = 0; i < 18; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 80 + Math.random() * 80;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 0.5,
+      maxLife: 0.5,
+      color,
+      size: 2 + Math.random() * 2
+    });
+  }
+  return particles;
+}
+
+/**
+ * Bonus-stage drain sparkle — a tiny shimmer trailing each enemy
+ * while bonus-end drain animation is playing.
+ */
+export function createBonusDrainSparkle(x, y) {
+  return [{
+    x: x + (Math.random() - 0.5) * 20,
+    y: y + (Math.random() - 0.5) * 20,
+    vx: (Math.random() - 0.5) * 30,
+    vy: -20 - Math.random() * 30,
+    life: 0.4,
+    maxLife: 0.4,
+    color: '#ffff66',
+    size: 2 + Math.random()
+  }];
+}
+
+/**
+ * Wave-start telegraph — returns ghost-sprite descriptors (NOT particles).
+ * Consumer in playScene renders these as semi-transparent enemy sprites.
+ * Returned objects: { x, y, themeKey, alpha }.
+ */
+export function createWaveTelegraphGhosts(positions) {
+  return positions.map(p => ({
+    x: p.x,
+    y: p.y,
+    themeKey: p.themeKey,
+    alpha: 0.35
+  }));
+}

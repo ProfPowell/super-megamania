@@ -50,14 +50,16 @@ import {
   checkPlayerEnemyCollision,
   checkPlayerBulletCollision
 } from '../systems/collision.js';
-import { startWave, updateWaveManager } from '../systems/waveManager.js';
+import { startWave, updateWaveManager, previewFormation } from '../systems/waveManager.js';
 import {
   createExplosion,
   createAbsurdExplosion,
   createPlayerExplosion,
   createTrailParticle,
   updateParticles,
-  drawParticles
+  drawParticles,
+  createBonusDrainSparkle,
+  createWaveTelegraphGhosts
 } from '../systems/particleSystem.js';
 import {
   triggerScreenShake,
@@ -154,6 +156,11 @@ export function createPlayScene({ menuController, onGameOver }) {
     startWave(state, ctx.adjustedConfig, themeName);
     waveAnnouncementTimer = 2;
     waveAnnouncementAlpha = 1;
+    // PHASE 2A: wave-start telegraph
+    state.juiceFx.waveTelegraphGhosts = createWaveTelegraphGhosts(
+      previewFormation(state.currentWave, 8)
+    );
+    state.juiceFx.waveTelegraphUntil = state.gameTime + 0.6;
     audio.playWaveStart();
     bus.emit(Events.WAVE_START, { wave: state.currentWave });
   }
@@ -162,31 +169,75 @@ export function createPlayScene({ menuController, onGameOver }) {
     const { state, audio, input, bus, theme } = ctx;
     if (state.currentState !== GameStates.PLAYING) return;
 
+    // PHASE 2A: hitstop — freeze gameplay for N seconds after a big hit.
+    // The reactor sets state.hitstopTimer on ENEMY_KILLED/PLAYER_HIT.
+    // Real dt still ticks the hitstop timer itself, but the rest of the
+    // update sees dt=0 while hitstop is active.
+    if (state.hitstopTimer > 0) {
+      state.hitstopTimer = Math.max(0, state.hitstopTimer - dt);
+      // Still update screen shake during hitstop so the shake doesn't freeze.
+      updateScreenShake(dt);
+      return;
+    }
+
     state.gameTime += dt;
 
     updateBackground(ctx.backgroundElements, dt, state.gameTime);
+    // PHASE 2A: combo break flash should fire on timeout too, not just on
+    // off-screen miss. updateCombo zeros state.combo when its timer expires;
+    // detect that drop here and emit COMBO_BROKEN.
+    const _comboBefore = state.combo;
     updateCombo(state, dt);
+    if (_comboBefore > 0 && state.combo === 0) {
+      bus.emit(Events.COMBO_BROKEN, {});
+    }
 
     // BONUS STAGE timer tick
     if (state.bonusStageActive) {
       const bonusEnded = updateBonusStage(state, dt);
       if (bonusEnded) {
         bonusStagePerfect = state.bonusStageEnemiesEscaped === 0;
-        bonusStageEndTimer = 3;
-        bonusStageEndAlpha = 1;
-        state.enemies = [];
+        // PHASE 2A: begin drain animation; enemies float upward + sparkle
+        // for 0.4s before being cleared. End-overlay timer starts AFTER
+        // the drain. Clear enemy bullets immediately so player can't take
+        // a stale hit during the visual-only drain window.
+        state.juiceFx.bonusDrainUntil = state.gameTime + 0.4;
         state.enemyBullets = [];
-        state.waveComplete = true;
-        skipNextWaveAfterBonus = true;
-        interWavePause = true;
-        interWavePauseTimer = 3;
-        startEnergyRefill(state);
         bus.emit(Events.BONUS_END, {
           perfect: bonusStagePerfect,
           escaped: state.bonusStageEnemiesEscaped,
           score: state.bonusStageScore
         });
       }
+    }
+
+    // PHASE 2A: bonus drain visual-only mode. Gameplay is paused; only
+    // the drain motion + sparkle particles + screen shake update.
+    if (state.juiceFx.bonusDrainUntil > 0) {
+      if (state.gameTime < state.juiceFx.bonusDrainUntil) {
+        for (const enemy of state.enemies) {
+          enemy.y -= 600 * dt;
+          if (Math.random() < 0.5) {
+            state.particles.push(...createBonusDrainSparkle(
+              enemy.x + enemy.width / 2,
+              enemy.y + enemy.height / 2
+            ));
+          }
+        }
+        updateParticles(state.particles, dt);
+        updateScreenShake(dt);
+        return;
+      }
+      // Drain complete: clean up and transition to inter-wave end overlay.
+      state.juiceFx.bonusDrainUntil = 0;
+      bonusStageEndTimer = 3;
+      bonusStageEndAlpha = 1;
+      state.enemies = [];
+      state.waveComplete = true;
+      skipNextWaveAfterBonus = true;
+      interWavePause = true;
+      interWavePauseTimer = 3;
+      startEnergyRefill(state);
     }
 
     updateScreenShake(dt);
@@ -260,10 +311,8 @@ export function createPlayScene({ menuController, onGameOver }) {
       y: state.player.y
     };
 
-    // Preserve the original silently-broken comparison: `theme === 'absurd'`
-    // is always false because theme is the theme object, not a string.
-    // The spec defers fixing this to Phase 2A.
-    const isAbsurd = (theme === 'absurd');
+    // PHASE 2A FIX: theme is the theme object; check its name.
+    const isAbsurd = !!(theme && theme.name && theme.name.toLowerCase().includes('absurd'));
 
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const enemy = state.enemies[i];
@@ -301,7 +350,10 @@ export function createPlayScene({ menuController, onGameOver }) {
 
       if (isOffScreen(bullet)) {
         state.playerBullets.splice(i, 1);
-        if (state.combo > 0) resetCombo(state);
+        if (state.combo > 0) {
+          resetCombo(state);
+          bus.emit(Events.COMBO_BROKEN, {});
+        }
         continue;
       }
 
@@ -360,7 +412,11 @@ export function createPlayScene({ menuController, onGameOver }) {
         state.powerUps.splice(i, 1);
         applyPowerUp(state, powerUp);
         audio.playPowerUp();
-        bus.emit(Events.POWERUP_PICKUP, { kind: powerUp.type });
+        bus.emit(Events.POWERUP_PICKUP, {
+          kind: powerUp.type,
+          x: powerUp.x + (powerUp.width || 0) / 2,
+          y: powerUp.y + (powerUp.height || 0) / 2
+        });
       }
     }
 
@@ -495,6 +551,11 @@ export function createPlayScene({ menuController, onGameOver }) {
           startWave(state, ctx.adjustedConfig, themeName);
           waveAnnouncementTimer = 2;
           waveAnnouncementAlpha = 1;
+          // PHASE 2A: wave-start telegraph
+          state.juiceFx.waveTelegraphGhosts = createWaveTelegraphGhosts(
+            previewFormation(state.currentWave, 8)
+          );
+          state.juiceFx.waveTelegraphUntil = state.gameTime + 0.6;
           audio.playWaveStart();
           bus.emit(Events.WAVE_START, { wave: state.currentWave });
         }
@@ -536,6 +597,21 @@ export function createPlayScene({ menuController, onGameOver }) {
       if (state.player) {
         drawPlayer(g, state.player, ctx.playerImage, state);
       }
+
+      // PHASE 2A: wave-start telegraph ghosts.
+      if (state.gameTime < state.juiceFx.waveTelegraphUntil) {
+        const remaining = (state.juiceFx.waveTelegraphUntil - state.gameTime) / 0.6;
+        for (const ghost of state.juiceFx.waveTelegraphGhosts) {
+          const image = ctx.themeImages[ghost.themeKey];
+          if (image && image.complete) {
+            g.save();
+            g.globalAlpha = ghost.alpha * remaining;
+            g.drawImage(image, ghost.x, ghost.y, 24, 24);
+            g.restore();
+          }
+        }
+      }
+
       for (const enemy of state.enemies) {
         const enemyImage = ctx.themeImages[enemy.themeKey] || null;
         drawEnemy(g, enemy, enemyImage);
