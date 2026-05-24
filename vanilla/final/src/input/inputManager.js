@@ -71,7 +71,10 @@ export function createInputManager(deps = null) {
       keyboard.disable();
       touch.disable();
       // Reset press-edge tracking so re-enable doesn't see a stale "still held" state.
+      // Also clear firePressedAt so a paused-mid-press scenario can't produce a
+      // phantom buffered shot on the first post-resume frame.
       prevFire = false;
+      firePressedAt = 0;
     },
 
     showTouchControls() {

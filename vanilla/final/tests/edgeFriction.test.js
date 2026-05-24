@@ -19,28 +19,30 @@ test('edge friction: far from walls, displacement equals speed*dt', () => {
     `expected unfriction ${expected}, got ${moved}`);
 });
 
-test('edge friction: near left wall + moving left, displacement is dampened', () => {
+test('edge friction: near left wall + moving left, displacement matches friction mult', () => {
   const bounds = gameConfig.player.moveZone;
-  const p = makePlayerAt(bounds.minX + 4); // 4 px from left
+  const p = makePlayerAt(bounds.minX + 4); // 4 px from left → dist/16 = 0.25, clamped up to MIN 0.3
   const before = p.x;
   updatePlayer(p, 1 / 60, -1);
   const moved = before - p.x; // moving left = x decreases
   const fullSpeed = p.speed * (1 / 60);
-  assert.ok(moved < fullSpeed,
-    `near left wall moved=${moved} should be < fullSpeed=${fullSpeed}`);
-  assert.ok(moved > 0, 'should still move a little');
+  // Friction mult floor is 0.3 (since 4/16 = 0.25 < 0.3 min).
+  const expected = 0.3 * fullSpeed;
+  assert.ok(Math.abs(moved - expected) < 0.01,
+    `near left wall moved=${moved} should be ~${expected} (0.3 * fullSpeed=${fullSpeed})`);
 });
 
-test('edge friction: near right wall + moving right, displacement is dampened', () => {
+test('edge friction: near right wall + moving right, displacement matches friction mult', () => {
   const bounds = gameConfig.player.moveZone;
-  const p = makePlayerAt(bounds.maxX - 4); // will be repositioned below
-  p.x = bounds.maxX - p_width(p) - 4;
+  const p = createPlayer();
+  p.x = bounds.maxX - p.width - 4;
   const before = p.x;
   updatePlayer(p, 1 / 60, 1);
   const moved = p.x - before;
   const fullSpeed = p.speed * (1 / 60);
-  assert.ok(moved < fullSpeed && moved > 0,
-    `near right wall moved=${moved} should be 0 < x < ${fullSpeed}`);
+  const expected = 0.3 * fullSpeed;
+  assert.ok(Math.abs(moved - expected) < 0.01,
+    `near right wall moved=${moved} should be ~${expected} (0.3 * fullSpeed=${fullSpeed})`);
 });
 
 test('edge friction: near left wall + moving RIGHT (away), no friction', () => {
