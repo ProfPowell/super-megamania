@@ -1,6 +1,7 @@
 /**
  * @fileoverview Input manager
- * Combines keyboard and touch input into unified interface
+ * Combines keyboard and touch input into unified interface.
+ * Phase 2B: tracks fire-press edge for input buffering.
  */
 
 import { createKeyboardInput } from './keyboard.js';
@@ -8,48 +9,52 @@ import { createTouchInput } from './touch.js';
 
 /**
  * @typedef {Object} InputState
- * @property {boolean} left - Move left
- * @property {boolean} right - Move right
- * @property {boolean} fire - Fire weapon
- * @property {boolean} pause - Pause game
- * @property {boolean} restart - Restart game
+ * @property {boolean} left
+ * @property {boolean} right
+ * @property {boolean} fire
+ * @property {boolean} pause
+ * @property {boolean} restart
+ * @property {number} firePressedAt - ms timestamp of the most recent false→true fire transition; 0 if never pressed.
  */
 
 /**
- * Create input manager
- * @returns {Object} Input manager
+ * Create input manager.
+ *
+ * `deps` is optional and used only by tests to inject fake keyboard/touch
+ * modules. In normal use, the default real modules are constructed.
  */
-export function createInputManager() {
-  const keyboard = createKeyboardInput();
-  const touch = createTouchInput();
+export function createInputManager(deps = null) {
+  const keyboard = deps && deps.keyboard ? deps.keyboard : createKeyboardInput();
+  const touch    = deps && deps.touch    ? deps.touch    : createTouchInput();
 
-  // Auto-detect and show touch controls on touch devices
-  if (touch.isTouchDevice()) {
+  if (touch.isTouchDevice && touch.isTouchDevice()) {
     touch.show();
   }
 
+  let prevFire = false;
+  let firePressedAt = 0;
+
   return {
-    /**
-     * Get combined input state from all sources
-     * @returns {InputState} Combined input state
-     */
     getState() {
       const kbState = keyboard.getState();
       const touchState = touch.getState();
+      const fire = !!(kbState.fire || touchState.fire);
+
+      if (fire && !prevFire) {
+        firePressedAt = Date.now();
+      }
+      prevFire = fire;
 
       return {
-        left: kbState.left || touchState.left,
-        right: kbState.right || touchState.right,
-        fire: kbState.fire || touchState.fire,
-        pause: kbState.pause,
-        restart: kbState.restart
+        left:  !!(kbState.left  || touchState.left),
+        right: !!(kbState.right || touchState.right),
+        fire,
+        pause:   !!kbState.pause,
+        restart: !!kbState.restart,
+        firePressedAt
       };
     },
 
-    /**
-     * Get movement direction (-1 = left, 0 = none, 1 = right)
-     * @returns {number} Direction
-     */
     getDirection() {
       const state = this.getState();
       if (state.left && !state.right) return -1;
@@ -57,34 +62,24 @@ export function createInputManager() {
       return 0;
     },
 
-    /**
-     * Enable all inputs
-     */
     enable() {
       keyboard.enable();
       touch.enable();
     },
 
-    /**
-     * Disable all inputs
-     */
     disable() {
       keyboard.disable();
       touch.disable();
+      // Reset press-edge tracking so re-enable doesn't see a stale "still held" state.
+      prevFire = false;
     },
 
-    /**
-     * Show touch controls
-     */
     showTouchControls() {
-      touch.show();
+      if (touch.show) touch.show();
     },
 
-    /**
-     * Hide touch controls
-     */
     hideTouchControls() {
-      touch.hide();
+      if (touch.hide) touch.hide();
     }
   };
 }
