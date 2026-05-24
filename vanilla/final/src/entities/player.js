@@ -43,12 +43,31 @@ export function createPlayer(adjustedConfig = null) {
  * @param {number} dt - Delta time in seconds
  * @param {number} direction - Movement direction (-1, 0, 1)
  */
-export function updatePlayer(player, dt, direction) {
-  // Move horizontally
-  player.x += direction * player.speed * dt;
+const EDGE_FRICTION_ZONE = 16;  // px from each wall where friction kicks in
+const EDGE_FRICTION_MIN  = 0.3; // minimum speed multiplier at the wall itself
 
-  // Clamp to boundaries
+export function updatePlayer(player, dt, direction) {
   const bounds = gameConfig.player.moveZone;
+  let speedMult = 1;
+
+  if (direction !== 0) {
+    // When moving toward a wall, linearly damp speed inside the friction zone.
+    if (direction < 0) {
+      const dist = player.x - bounds.minX;
+      if (dist < EDGE_FRICTION_ZONE) {
+        speedMult = Math.max(EDGE_FRICTION_MIN, dist / EDGE_FRICTION_ZONE);
+      }
+    } else {
+      const dist = (bounds.maxX - player.width) - player.x;
+      if (dist < EDGE_FRICTION_ZONE) {
+        speedMult = Math.max(EDGE_FRICTION_MIN, dist / EDGE_FRICTION_ZONE);
+      }
+    }
+  }
+
+  player.x += direction * player.speed * speedMult * dt;
+
+  // Hard clamp as a safety net (handles big dt spikes and edge cases).
   player.x = Math.max(bounds.minX, Math.min(bounds.maxX - player.width, player.x));
 
   // Update invincibility
