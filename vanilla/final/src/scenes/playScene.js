@@ -595,7 +595,10 @@ export function createPlayScene({ menuController, onGameOver }) {
     clearCanvas(g);
     drawBackground(g, ctx.backgroundElements, state.gameTime);
 
-    // PHASE 2C: meme intrusion sits in the background plane.
+    // PHASE 2C: meme intrusion sits in the background plane. Drawn
+    // before the save/applyScreenShake block on purpose — the emoji
+    // stays steady while the gameplay layer shakes around it, which
+    // reads as a separate visual plane (matches drawBackground above).
     drawMemeIntrusion(g, state);
 
     g.save();

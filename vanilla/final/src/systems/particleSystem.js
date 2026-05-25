@@ -369,9 +369,9 @@ const CONFETTI_COLORS = [
 
 /**
  * Confetti burst for the perfect-bonus kaboom (Phase 2C). Particles fan
- * upward and outward, then fall with a gentle gravity-ish drift baked
- * into the velocity (no actual gravity in the particle system — we just
- * bias initial vy upward and let updateParticles drift them).
+ * upward and outward at launch; updateParticles applies its standard
+ * gravity (+200 px/s² on vy) so they fall back down naturally for the
+ * confetti shape.
  */
 export function createConfetti(x, y, count = 40) {
   const particles = [];
