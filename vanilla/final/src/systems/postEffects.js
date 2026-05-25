@@ -20,3 +20,17 @@ export function triggerChromaticAberration(durationMs = 100) {
     activeTimeout = null;
   }, durationMs);
 }
+
+let scanlineTimeout = null;
+
+export function triggerScanlineFlash(durationMs = 350) {
+  if (typeof document === 'undefined') return;
+  const host = document.getElementById('game-container');
+  if (!host) return;
+  host.classList.add('scanline-flash');
+  if (scanlineTimeout) clearTimeout(scanlineTimeout);
+  scanlineTimeout = setTimeout(() => {
+    host.classList.remove('scanline-flash');
+    scanlineTimeout = null;
+  }, durationMs);
+}

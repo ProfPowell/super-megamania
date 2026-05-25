@@ -88,6 +88,8 @@ import {
   startBonusStage,
   updateBonusStage
 } from './_bonusStateMutations.js';
+import { updateMemeIntrusion, drawMemeIntrusion } from '../systems/memeIntrusion.js';
+import { isAbsurd } from '../app/context.js';
 
 /**
  * The gameplay scene. Single update/render path covering wave play
@@ -191,6 +193,9 @@ export function createPlayScene({ menuController, onGameOver }) {
     if (_comboBefore > 0 && state.combo === 0) {
       bus.emit(Events.COMBO_BROKEN, {});
     }
+
+    // PHASE 2C: meme intrusion timer tick.
+    updateMemeIntrusion(ctx, dt);
 
     // BONUS STAGE timer tick
     if (state.bonusStageActive) {
@@ -600,7 +605,21 @@ export function createPlayScene({ menuController, onGameOver }) {
     clearCanvas(g);
     drawBackground(g, ctx.backgroundElements, state.gameTime);
 
+    // PHASE 2C: meme intrusion sits in the background plane. Drawn
+    // before the save/applyScreenShake block on purpose — the emoji
+    // stays steady while the gameplay layer shakes around it, which
+    // reads as a separate visual plane (matches drawBackground above).
+    drawMemeIntrusion(g, state);
+
     g.save();
+    // PHASE 2C: VHS jitter — 1 frame per second in Absurd bonus stage.
+    if (state.bonusStageActive && isAbsurd(ctx)) {
+      if (state.gameTime >= state.juiceFx.vhsJitterNextAt) {
+        state.juiceFx.vhsJitterNextAt = state.gameTime + 1.0;
+        const jitterX = (Math.random() - 0.5) * 18; // ±9px
+        g.translate(jitterX, 0);
+      }
+    }
     applyScreenShake(g);
 
     if (state.currentState === GameStates.PLAYING || state.currentState === GameStates.PAUSED) {

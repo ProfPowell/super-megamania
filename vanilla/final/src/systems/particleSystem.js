@@ -361,3 +361,32 @@ export function createWaveTelegraphGhosts(positions) {
     alpha: 0.35
   }));
 }
+
+const CONFETTI_COLORS = [
+  '#ff00ff', '#00ffff', '#ffff00', '#00ff00',
+  '#ff0080', '#80ff00', '#0080ff', '#ff8000'
+];
+
+/**
+ * Confetti burst for the perfect-bonus kaboom (Phase 2C). Particles fan
+ * upward and outward at launch; updateParticles applies its standard
+ * gravity (+200 px/s² on vy) so they fall back down naturally for the
+ * confetti shape.
+ */
+export function createConfetti(x, y, count = 40) {
+  const particles = [];
+  for (let i = 0; i < count; i++) {
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI; // upward fan
+    const speed = 120 + Math.random() * 180;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1.2 + Math.random() * 0.8,
+      maxLife: 2.0,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      size: 2 + Math.random() * 3
+    });
+  }
+  return particles;
+}
