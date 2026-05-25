@@ -82,9 +82,12 @@ async function init() {
   }
 
   menuScene = createMenuScene();
+  // ?micromode=0 disables Phase 2D micromode triggering (parallel to ?juice=0).
+  const enableMicroModes = !/[?&]micromode=0\b/.test(window.location.search);
   playScene = createPlayScene({
     menuController,
-    onGameOver: (c) => handleGameOver(c, menuController)
+    onGameOver: (c) => handleGameOver(c, menuController),
+    enableMicroModes
   });
 
   setupEventListeners();
