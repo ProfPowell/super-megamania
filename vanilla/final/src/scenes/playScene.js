@@ -90,6 +90,7 @@ import {
 } from './_bonusStateMutations.js';
 import { updateMemeIntrusion, drawMemeIntrusion } from '../systems/memeIntrusion.js';
 import { isAbsurd } from '../app/context.js';
+import { updateMicroModeTrigger } from '../systems/microModeTrigger.js';
 
 /**
  * The gameplay scene. Single update/render path covering wave play
@@ -104,7 +105,7 @@ import { isAbsurd } from '../app/context.js';
  * was in the original main.js update(). Bus emits are added as new
  * hooks so Phase 2A reactors can subscribe without changing behavior.
  */
-export function createPlayScene({ menuController, onGameOver }) {
+export function createPlayScene({ menuController, onGameOver, enableMicroModes = true }) {
   let waveAnnouncementAlpha = 0;
   let waveAnnouncementTimer = 0;
   let waveCompleteAlpha = 0;
@@ -196,6 +197,12 @@ export function createPlayScene({ menuController, onGameOver }) {
 
     // PHASE 2C: meme intrusion timer tick.
     updateMemeIntrusion(ctx, dt);
+
+    // PHASE 2D: micromode trigger — safe-window detection + scheduling +
+    // push when conditions allow. Bypassed entirely when ?micromode=0.
+    if (enableMicroModes) {
+      updateMicroModeTrigger(ctx, dt);
+    }
 
     // BONUS STAGE timer tick
     if (state.bonusStageActive) {

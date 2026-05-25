@@ -115,6 +115,12 @@ export function createGameState(difficulty = 'normal') {
       memeIntrusion: null,       // meme effect descriptor for intrusive absurd visuals
       memeIntrusionNextAt: 0,    // gameTime seconds; when next meme intrusion triggers
       vhsJitterNextAt: 0         // gameTime seconds; when next VHS jitter effect triggers
+    },
+    // PHASE 2D MICROMODE STATE
+    microMode: {
+      safeWindowSec: 0,          // seconds of continuous "no enemies, no bullets" — incremented per frame while safe
+      nextMicroModeAt: 0,        // gameTime seconds; next eligible micromode push moment
+      activeMicroMode: null      // name of currently-running micromode, or null
     }
   };
 }
@@ -165,6 +171,12 @@ export function resetGameState(state, difficulty) {
     memeIntrusion: null,
     memeIntrusionNextAt: 0,
     vhsJitterNextAt: 0
+  };
+
+  state.microMode = {
+    safeWindowSec: 0,
+    nextMicroModeAt: 0,
+    activeMicroMode: null
   };
 }
 
