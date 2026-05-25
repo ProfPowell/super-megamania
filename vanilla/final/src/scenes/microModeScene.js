@@ -9,8 +9,8 @@ import { Events } from '../app/events.js';
  * the wrapper does not depend on Phase 2B's inputManager refactor.
  */
 
-const COOLDOWN_MIN_SEC = 10;
-const COOLDOWN_MAX_SEC = 30;
+const COOLDOWN_MIN_SEC = 30;
+const COOLDOWN_MAX_SEC = 60;
 
 function scheduleNext(gameTime) {
   const span = COOLDOWN_MAX_SEC - COOLDOWN_MIN_SEC;
@@ -54,14 +54,16 @@ export function createMicroModeScene(micromode, ctxAtCreate) {
     const durationDone = elapsed >= micromode.duration;
     const signalDone = earlyComplete && earlyComplete.complete === true;
     if (durationDone || signalDone) {
-      // Resolve outcome: prefer the early-complete payload; otherwise
-      // call onExit to decide success/fail.
+      // Always call onExit for side-effects (e.g. Coffee Break's energy
+      // reward application). If the micromode also signaled an outcome
+      // via the early-complete return value, that wins as the EVENT
+      // payload — but onExit still runs.
+      const exitResult = typeof micromode.onExit === 'function'
+        ? micromode.onExit(ctx.state, ctx)
+        : null;
       if (signalDone) {
         outcome = earlyComplete.outcome || 'success';
       } else {
-        const exitResult = typeof micromode.onExit === 'function'
-          ? micromode.onExit(ctx.state, ctx)
-          : { outcome: 'success' };
         outcome = (exitResult && exitResult.outcome) || 'success';
       }
 

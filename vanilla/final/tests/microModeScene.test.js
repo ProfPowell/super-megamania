@@ -139,8 +139,43 @@ test('microModeScene: schedules next micromode + clears activeMicroMode on exit'
   scene.update(ctx, 0.06);
   assert.equal(ctx.state.microMode.activeMicroMode, null);
   const next = ctx.state.microMode.nextMicroModeAt;
-  assert.ok(next >= 60 && next <= 80,
-    `next scheduled at ${next}; expected gameTime+10..30 (60-80)`);
+  assert.ok(next >= 80 && next <= 110,
+    `next scheduled at ${next}; expected gameTime+30..60 (80-110)`);
+});
+
+// PHASE 2D C1 regression: onExit must run for side-effects even when
+// the micromode signals early-complete via the update return value.
+test('microModeScene: onExit runs even on early-complete signal (side-effects must apply)', () => {
+  const ctx = makeFakeController();
+  const sc = { stack: [], push: (s) => sc.stack.push(s), pop: () => sc.stack.pop(), current: () => sc.stack[sc.stack.length-1] || null };
+  const evts = [];
+  const fullCtx = {
+    sceneController: sc,
+    bus: { emit: (n, p) => evts.push({ n, p }) },
+    state: {
+      gameTime: 0,
+      microMode: { safeWindowSec: 0, nextMicroModeAt: 0, activeMicroMode: 'test' }
+    },
+    input: { getState: () => ({ fire: true, left: false, right: false }) }
+  };
+  let onExitCalled = 0;
+  const mm = {
+    name: 'test',
+    duration: 999,                                  // would never expire by time
+    enter: () => {},
+    update: () => ({ complete: true, outcome: 'success' }), // signal immediately
+    render: () => {},
+    onExit: (state, _c) => { onExitCalled++; return { outcome: 'fail' }; }
+  };
+  const scene = createMicroModeScene(mm, fullCtx);
+  sc.push({ name: 'play' });
+  sc.push(scene);
+  scene.enter();
+  scene.update(fullCtx, 0.016);
+  assert.equal(onExitCalled, 1, 'onExit should run for side-effects on early-complete');
+  // The EVENT outcome still wins from the early-complete payload.
+  const end = evts.find(e => e.n === 'MICROMODE_END');
+  assert.equal(end.p.outcome, 'success');
 });
 
 test('microModeScene: render delegates to micromode.render', () => {
