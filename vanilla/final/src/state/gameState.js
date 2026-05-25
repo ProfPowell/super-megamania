@@ -110,7 +110,11 @@ export function createGameState(difficulty = 'normal') {
       comboBreakUntil: 0,        // timestamp in ms; combo break red flash while now < comboBreakUntil
       bonusDrainUntil: 0,        // gameTime seconds; bonus-end drain animation while gameTime < bonusDrainUntil
       waveTelegraphGhosts: [],   // ghost descriptors for wave-start telegraph, drawn while non-empty
-      waveTelegraphUntil: 0      // gameTime seconds; telegraph window
+      waveTelegraphUntil: 0,     // gameTime seconds; telegraph window
+      // PHASE 2C
+      memeIntrusion: null,       // meme effect descriptor for intrusive absurd visuals
+      memeIntrusionNextAt: 0,    // gameTime seconds; when next meme intrusion triggers
+      vhsJitterNextAt: 0         // gameTime seconds; when next VHS jitter effect triggers
     }
   };
 }
@@ -157,7 +161,10 @@ export function resetGameState(state, difficulty) {
     comboBreakUntil: 0,
     bonusDrainUntil: 0,
     waveTelegraphGhosts: [],
-    waveTelegraphUntil: 0
+    waveTelegraphUntil: 0,
+    memeIntrusion: null,
+    memeIntrusionNextAt: 0,
+    vhsJitterNextAt: 0
   };
 }
 
