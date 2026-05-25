@@ -2,10 +2,11 @@ import { Events } from '../app/events.js';
 import {
   createBigExplosion,
   createComboFlash,
-  createPowerupBurst
+  createPowerupBurst,
+  createConfetti
 } from './particleSystem.js';
 import { triggerScreenShake } from './screenShake.js';
-import { triggerChromaticAberration } from './postEffects.js';
+import { triggerChromaticAberration, triggerScanlineFlash } from './postEffects.js';
 
 /**
  * Phase 2A reactor: layers extra juice on top of the inline calls that
@@ -82,6 +83,9 @@ export function installJuiceReactor(ctx) {
     if (payload && payload.perfect && isAbsurd(ctx.theme)) {
       ctx.state.juiceFx.chromaUntil = Date.now() + CHROMA_MS;
       triggerChromaticAberration(CHROMA_MS);
+      // PHASE 2C: perfect-bonus kaboom — confetti + scanline flash.
+      ctx.state.particles.push(...createConfetti(320, 240, 60));
+      triggerScanlineFlash(350);
     }
   }));
 
