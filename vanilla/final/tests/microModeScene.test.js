@@ -188,3 +188,47 @@ test('microModeScene: render delegates to micromode.render', () => {
   scene.render(ctx);
   assert.equal(drawCalls, 1);
 });
+
+test('microModeScene: detects leftPressedThisFrame and rightPressedThisFrame on press edges', () => {
+  let leftState = false;
+  let rightState = false;
+  const sc = { stack: [], push: (s) => sc.stack.push(s), pop: () => sc.stack.pop(), current: () => sc.stack[sc.stack.length-1] || null };
+  const fullCtx = {
+    sceneController: sc,
+    bus: { emit: () => {} },
+    state: { gameTime: 0, microMode: { safeWindowSec: 0, nextMicroModeAt: 0, activeMicroMode: 'test' } },
+    input: { getState: () => ({ fire: false, left: leftState, right: rightState }) }
+  };
+  const seen = [];
+  const mm = {
+    name: 'test',
+    duration: 999,
+    enter: () => {},
+    update: (_s, _c, _dt, info) => {
+      seen.push({ l: info.leftPressedThisFrame, r: info.rightPressedThisFrame });
+      return null;
+    },
+    render: () => {},
+    onExit: () => ({ outcome: 'success' })
+  };
+  const scene = createMicroModeScene(mm, fullCtx);
+  sc.push({ name: 'play' });
+  sc.push(scene);
+  scene.enter();
+  scene.update(fullCtx, 0.016);   // both false → no edge
+  leftState = true;
+  scene.update(fullCtx, 0.016);   // left edge → l:true, r:false
+  scene.update(fullCtx, 0.016);   // held → l:false
+  leftState = false;
+  rightState = true;
+  scene.update(fullCtx, 0.016);   // right edge → l:false r:true
+  rightState = false;
+  scene.update(fullCtx, 0.016);   // both released → both false
+  assert.deepEqual(seen, [
+    { l: false, r: false },
+    { l: true,  r: false },
+    { l: false, r: false },
+    { l: false, r: true  },
+    { l: false, r: false }
+  ]);
+});

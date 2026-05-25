@@ -1,6 +1,9 @@
 import { Events } from '../app/events.js';
 import { createMicroModeScene } from '../scenes/microModeScene.js';
 import { coffeeBreak } from '../scenes/micromodes/coffeeBreak.js';
+import { loading99 }   from '../scenes/micromodes/loading99.js';
+import { captcha }     from '../scenes/micromodes/captcha.js';
+import { emojiRain }   from '../scenes/micromodes/emojiRain.js';
 
 /**
  * Phase 2D — per-frame trigger for the micromode subsystem.
@@ -20,8 +23,8 @@ const MIN_SAFE_WINDOW_SEC = 1.0;
 const FIRST_SCHEDULE_MIN_SEC = 10;
 const FIRST_SCHEDULE_MAX_SEC = 30;
 
-// v1 registry — Phase 2E adds Loading, CAPTCHA, Emoji Rain.
-const MICROMODE_REGISTRY = [coffeeBreak];
+// Phase 2E: full Tier E micromode roster.
+const MICROMODE_REGISTRY = [coffeeBreak, loading99, captcha, emojiRain];
 
 function isAbsurdTheme(theme) {
   return !!(theme && theme.name && theme.name.toLowerCase().includes('absurd'));
