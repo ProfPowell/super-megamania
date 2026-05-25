@@ -20,11 +20,15 @@ function scheduleNext(gameTime) {
 export function createMicroModeScene(micromode, ctxAtCreate) {
   let elapsed = 0;
   let prevFire = false;
+  let prevLeft = false;
+  let prevRight = false;
   let outcome = null;
 
   function enter() {
     elapsed = 0;
     prevFire = false;
+    prevLeft = false;
+    prevRight = false;
     outcome = null;
     if (typeof micromode.enter === 'function') {
       micromode.enter(ctxAtCreate.state, ctxAtCreate);
@@ -36,14 +40,22 @@ export function createMicroModeScene(micromode, ctxAtCreate) {
 
     const inputState = ctx.input.getState();
     const fire = !!inputState.fire;
+    const left = !!inputState.left;
+    const right = !!inputState.right;
     const firePressedThisFrame = fire && !prevFire;
+    const leftPressedThisFrame = left && !prevLeft;
+    const rightPressedThisFrame = right && !prevRight;
     prevFire = fire;
+    prevLeft = left;
+    prevRight = right;
 
     const inputInfo = {
       fire,
       firePressedThisFrame,
-      left: !!inputState.left,
-      right: !!inputState.right
+      left,
+      right,
+      leftPressedThisFrame,
+      rightPressedThisFrame
     };
 
     let earlyComplete = null;
