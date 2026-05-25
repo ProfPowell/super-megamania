@@ -270,7 +270,17 @@ export function createPlayScene({ menuController, onGameOver }) {
     const direction = input.getDirection();
     updatePlayer(state.player, dt, direction);
 
-    if (inputState.fire) {
+    // PHASE 2B: input buffering — fire also when the player tapped within
+    // FIRE_BUFFER_MS before cooldown ended. firePressedAt > lastFireTime
+    // ensures each press fires at most once via the buffer path.
+    const FIRE_BUFFER_MS = 80;
+    const wantsToFire = inputState.fire || (
+      inputState.firePressedAt > 0 &&
+      Date.now() - inputState.firePressedAt < FIRE_BUFFER_MS &&
+      inputState.firePressedAt > state.player.lastFireTime
+    );
+
+    if (wantsToFire) {
       let fireRateModifier = 1;
       if (hasPowerUp(state, 'rapidFire')) {
         fireRateModifier = 0.33;
