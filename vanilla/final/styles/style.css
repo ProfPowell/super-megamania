@@ -696,3 +696,29 @@ body {
     drop-shadow(2px 0 0 rgba(255, 0, 0, 0.6))
     drop-shadow(-2px 0 0 rgba(0, 255, 255, 0.6));
 }
+
+/* Phase 2C: scanline flash overlay for perfect-bonus kaboom.
+   Targets #game-container (not the canvas) because pseudo-elements
+   don't render on <canvas>. */
+#game-container.scanline-flash {
+  position: relative;
+}
+#game-container.scanline-flash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0) 0px,
+    rgba(255, 255, 255, 0) 3px,
+    rgba(255, 255, 255, 0.18) 3px,
+    rgba(255, 255, 255, 0.18) 4px
+  );
+  animation: scanline-flash-fade 350ms linear forwards;
+  z-index: 10;
+}
+@keyframes scanline-flash-fade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
