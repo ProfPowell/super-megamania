@@ -20,6 +20,9 @@ import { triggerChromaticAberration, triggerScanlineFlash } from './postEffects.
  * - Powerup pickup burst at the pickup site
  * - Chromatic aberration on PLAYER_HIT and on perfect BONUS_END (Absurd only)
  * - Combo HUD pop / break animation timers
+ * - Audio pass: micromode start/success/fail stingers, combo milestone
+ *   chime (every 5), combo-broken buzz, enemy-escaped blip, and the
+ *   perfect-bonus fanfare — all via ctx.audio
  *
  * Pure subscriber; holds no module state. All effect state lives on
  * state.hitstopTimer and state.juiceFx.
@@ -62,6 +65,7 @@ export function installJuiceReactor(ctx) {
       const cx = enemy.x + enemy.width / 2;
       const cy = enemy.y + enemy.height / 2;
       ctx.state.particles.push(...createComboFlash(cx, cy, comboAfter));
+      ctx.audio.playComboMilestone(comboAfter);
     }
   }));
 
@@ -80,6 +84,9 @@ export function installJuiceReactor(ctx) {
   }));
 
   unsubs.push(bus.on(Events.BONUS_END, (payload) => {
+    if (payload && payload.perfect) {
+      ctx.audio.playPerfectBonus();
+    }
     if (payload && payload.perfect && isAbsurd(ctx.theme)) {
       ctx.state.juiceFx.chromaUntil = Date.now() + CHROMA_MS;
       triggerChromaticAberration(CHROMA_MS);
@@ -95,13 +102,29 @@ export function installJuiceReactor(ctx) {
 
   unsubs.push(bus.on(Events.COMBO_BROKEN, () => {
     ctx.state.juiceFx.comboBreakUntil = Date.now() + 400;
+    ctx.audio.playComboBroken();
+  }));
+
+  unsubs.push(bus.on(Events.ENEMY_ESCAPED, () => {
+    ctx.audio.playEnemyEscaped();
+  }));
+
+  unsubs.push(bus.on(Events.MICROMODE_START, () => {
+    ctx.audio.playMicroModeStart();
+  }));
+
+  unsubs.push(bus.on(Events.MICROMODE_END, (payload) => {
+    if (payload && payload.outcome === 'success') {
+      ctx.audio.playMicroModeSuccess();
+    } else {
+      ctx.audio.playMicroModeFail();
+    }
   }));
 
   // Other events stay reserved for later phases.
   unsubs.push(bus.on(Events.WAVE_START,      () => {}));
   unsubs.push(bus.on(Events.WAVE_COMPLETE,   () => {}));
   unsubs.push(bus.on(Events.BONUS_START,     () => {}));
-  unsubs.push(bus.on(Events.ENEMY_ESCAPED,   () => {}));
   unsubs.push(bus.on(Events.PLAYER_DIED,     () => {}));
 
   return () => unsubs.forEach(u => u());
