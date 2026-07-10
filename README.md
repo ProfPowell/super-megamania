@@ -6,7 +6,11 @@ A modern JavaScript remake of the classic Atari 2600 game *Megamania* with a twi
 
 ## 🎮 Play Now
 
-Open `vanilla/final/index.html` in a modern web browser or serve it with a local HTTP server:
+**▶️ Play in your browser: https://profpowell.github.io/super-megamania/**
+
+Works on desktop and phones (touch controls appear automatically). Every push to `main` auto-deploys via GitHub Actions.
+
+Or run it locally — open `vanilla/final/index.html` in a modern web browser or serve it with a local HTTP server:
 
 ```bash
 cd vanilla/final
