@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { coffeeBreak } from '../src/scenes/micromodes/coffeeBreak.js';
 
 function makeState() {
-  return { maxEnergy: 1000, energy: 500 };
+  return { maxEnergy: 1000, energy: 500, microMode: { instance: {} } };
 }
 
-test('coffeeBreak: enter resets sip counter', () => {
+test('coffeeBreak: enter sets instance.sips = 0', () => {
   const s = makeState();
+  s.microMode.instance.sips = 99;
   coffeeBreak.enter(s, {});
-  assert.doesNotThrow(() => coffeeBreak.enter(s, {}));
+  assert.equal(s.microMode.instance.sips, 0);
 });
 
 test('coffeeBreak: each fire-press edge counts as a sip; success at threshold', () => {
@@ -47,7 +48,7 @@ test('coffeeBreak: success rewards 15% maxEnergy', () => {
 });
 
 test('coffeeBreak: success reward capped at maxEnergy', () => {
-  const s = { maxEnergy: 1000, energy: 950 };
+  const s = { maxEnergy: 1000, energy: 950, microMode: { instance: {} } };
   coffeeBreak.enter(s, {});
   for (let i = 0; i < 12; i++) {
     coffeeBreak.update(s, {}, 0.016, { firePressedThisFrame: true });
