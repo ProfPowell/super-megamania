@@ -69,15 +69,26 @@ export function createAudioManager() {
   }
 
   /**
+   * Randomly detune a frequency by ±pct so repeated sounds don't fatigue.
+   * @param {number} freq - Base frequency in Hz
+   * @param {number} pct - Max deviation fraction (default 6%)
+   * @returns {number} Detuned frequency
+   */
+  function vary(freq, pct = 0.06) {
+    return freq * (1 + (Math.random() * 2 - 1) * pct);
+  }
+
+  /**
    * ABSURD MODE SOUNDS - Maximum chaos! 🌭
    */
 
   function playAbsurdPlayerFire() {
-    // "Pew pew" but make it silly
-    playBeep(1200, 0.05, 'sine');
-    setTimeout(() => playBeep(800, 0.05, 'sine'), 50);
+    // "Pew pew" but make it silly — detuned per shot so mashing fire
+    // doesn't sound like a metronome
+    playBeep(vary(1200), 0.05, 'sine');
+    setTimeout(() => playBeep(vary(800), 0.05, 'sine'), 50);
     // Add a little "boing" at the end
-    setTimeout(() => playBeep(1500, 0.03, 'triangle'), 100);
+    setTimeout(() => playBeep(vary(1500), 0.03, 'triangle'), 100);
   }
 
   function playAbsurdEnemyExplode() {
@@ -90,7 +101,7 @@ export function createAudioManager() {
     ];
 
     sounds.forEach((sound, i) => {
-      setTimeout(() => playBeep(sound.freq, 0.08, sound.type), i * 40);
+      setTimeout(() => playBeep(vary(sound.freq), 0.08, sound.type), i * 40);
     });
 
     // Add a silly "pop" at the end
@@ -146,6 +157,75 @@ export function createAudioManager() {
     playBeep(800, 0.05, 'sine');
     setTimeout(() => playBeep(1200, 0.08, 'triangle'), 50);
     setTimeout(() => playBeep(900, 0.05, 'sine'), 130);
+  }
+
+  /**
+   * AUDIO PASS - micromode stingers + event flavor 🔊
+   */
+
+  function playMicroModeStartSting() {
+    // Glitchy "we interrupt this program" — stuttering square drops,
+    // then an attention-grabbing rising blip
+    playBeep(900, 0.04, 'square');
+    setTimeout(() => playBeep(600, 0.04, 'square'), 60);
+    setTimeout(() => playBeep(900, 0.04, 'square'), 120);
+    setTimeout(() => playBeep(400, 0.06, 'square'), 180);
+    setTimeout(() => playBeep(500, 0.08, 'triangle'), 280);
+    setTimeout(() => playBeep(800, 0.08, 'triangle'), 360);
+    setTimeout(() => playBeep(1300, 0.12, 'sine'), 440);
+  }
+
+  function playMicroModeSuccessSting() {
+    // "Ta-da!" — two-chord fanfare with a sparkle tail
+    playBeep(523, 0.12, 'triangle');   // C5
+    playBeep(659, 0.12, 'triangle');   // E5
+    setTimeout(() => {
+      playBeep(784, 0.2, 'triangle');  // G5
+      playBeep(1047, 0.2, 'sine');     // C6
+    }, 140);
+    setTimeout(() => playBeep(1568, 0.06, 'sine'), 380);
+    setTimeout(() => playBeep(2093, 0.08, 'sine'), 440);
+  }
+
+  function playMicroModeFailSting() {
+    // Mini womp-womp — shorter and lighter than the death trombone,
+    // because failing a micromode costs nothing
+    playBeep(300, 0.15, 'sawtooth');
+    setTimeout(() => playBeep(250, 0.2, 'sawtooth'), 180);
+  }
+
+  function playComboMilestoneSting(combo) {
+    // Ascending arpeggio whose base pitch climbs with the combo, so a
+    // 25-chain audibly outranks a 5-chain (capped to stay musical)
+    const base = 400 + Math.min(combo, 30) * 20;
+    playBeep(base, 0.06, 'triangle');
+    setTimeout(() => playBeep(base * 1.25, 0.06, 'triangle'), 60);
+    setTimeout(() => playBeep(base * 1.5, 0.1, 'sine'), 120);
+  }
+
+  function playComboBrokenSting() {
+    // Short deflating buzz — noticeable but not punishing
+    playBeep(220, 0.08, 'sawtooth');
+    setTimeout(() => playBeep(160, 0.12, 'sawtooth'), 70);
+  }
+
+  function playEnemyEscapedBlip() {
+    // Sad little "he got away" blip
+    playBeep(350, 0.06, 'triangle');
+    setTimeout(() => playBeep(260, 0.1, 'triangle'), 70);
+  }
+
+  function playPerfectBonusFanfare() {
+    // The big one — perfect bonus deserves a full victory lap
+    const notes = [523, 659, 784, 1047, 1319, 1568]; // C-E-G-C-E-G climb
+    notes.forEach((freq, i) => {
+      setTimeout(() => playBeep(freq, 0.12, 'triangle'), i * 70);
+    });
+    setTimeout(() => {
+      playBeep(1047, 0.35, 'sine');
+      playBeep(1319, 0.35, 'sine');
+      playBeep(1568, 0.35, 'triangle');
+    }, notes.length * 70 + 60);
   }
 
   /**
@@ -390,6 +470,70 @@ export function createAudioManager() {
       } else {
         playBeep(600, 0.1, 'sine');
       }
+    },
+
+    /**
+     * Play micromode interrupt sting (Absurd-mode interludes)
+     */
+    playMicroModeStart() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+      playMicroModeStartSting();
+    },
+
+    /**
+     * Play micromode success "ta-da"
+     */
+    playMicroModeSuccess() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+      playMicroModeSuccessSting();
+    },
+
+    /**
+     * Play micromode fail mini womp-womp
+     */
+    playMicroModeFail() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+      playMicroModeFailSting();
+    },
+
+    /**
+     * Play combo milestone chime (pitch scales with combo)
+     * @param {number} combo - Current combo count
+     */
+    playComboMilestone(combo) {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+      playComboMilestoneSting(combo);
+    },
+
+    /**
+     * Play combo broken sound
+     */
+    playComboBroken() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+      playComboBrokenSting();
+    },
+
+    /**
+     * Play enemy escaped blip
+     */
+    playEnemyEscaped() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+      playEnemyEscapedBlip();
+    },
+
+    /**
+     * Play perfect-bonus fanfare
+     */
+    playPerfectBonus() {
+      init();
+      if (!sfxEnabled || !audioContext) return;
+      playPerfectBonusFanfare();
     },
 
     /**
