@@ -28,6 +28,7 @@ export const loading99 = {
 
   enter(state, _ctx) {
     state.microMode.instance = {
+      presses: 0,
       pct: START_PCT,
       label: SARCASTIC_LABELS[Math.floor(Math.random() * SARCASTIC_LABELS.length)]
     };
@@ -36,7 +37,10 @@ export const loading99 = {
   update(state, _ctx, _dt, input) {
     const inst = state.microMode.instance;
     if (input.firePressedThisFrame) {
-      inst.pct = Math.min(TARGET_PCT, inst.pct + NUDGE_PCT);
+      // Derive pct from the press count instead of accumulating += NUDGE_PCT:
+      // repeated float addition of 0.1 never lands exactly on 100.0.
+      inst.presses++;
+      inst.pct = Math.min(TARGET_PCT, START_PCT + inst.presses * NUDGE_PCT);
     }
     if (inst.pct >= TARGET_PCT) {
       return { complete: true, outcome: 'success' };
